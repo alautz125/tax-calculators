@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Van Hollen Personal Exemption — Tax Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --ink: #0f1117; --paper: #f7f4ef; --cream: #ede9e1; --rule: #d4cfc6;
+    --accent: #c84b31; --muted: #7a746c; --tag-cl: #2563a8; --tag-ns: #1a7a4a;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+  header { border-bottom: 2px solid var(--ink); padding: 28px 48px 22px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .header-left { max-width: 680px; }
+  .eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  h1 { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1.15; font-weight: 400; }
+  h1 em { font-style: italic; color: var(--accent); }
+  .subtitle { margin-top: 6px; font-size: 13px; color: var(--muted); font-weight: 300; max-width: 520px; }
+  .legend-pills { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+  .pill { display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 2px; border: 1px solid currentColor; white-space: nowrap; }
+  .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.cl { color: var(--tag-cl); } .pill.ns { color: var(--tag-ns); }
+
+  .main-grid { display: flex; flex-direction: column; }
+  aside { background: var(--cream); border-bottom: 1.5px solid var(--ink); padding: 24px 32px; }
+  .aside-inner { max-width: 640px; }
+  .inputs-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; }
+  .inputs-row .field { margin-bottom: 0; flex: 0 0 auto; }
+  .inputs-row .field.income-field { width: 180px; }
+  .inputs-row .field.slider-field { width: 220px; }
+  .inputs-row .field.select-field { width: 200px; }
+  .inputs-row .field.children-field { width: 180px; }
+  .inputs-row .field.chartmax-field { width: 140px; }
+
+  .section-label { font-family: 'DM Mono', monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule); padding-bottom: 6px; margin-bottom: 14px; margin-top: 20px; }
+  .section-label:first-child { margin-top: 0; }
+  .field { margin-bottom: 14px; }
+  label { display: block; font-size: 11.5px; font-weight: 500; letter-spacing: 0.03em; margin-bottom: 5px; color: var(--ink); }
+  .input-wrap { position: relative; }
+  .input-wrap .prefix { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); pointer-events: none; }
+  input[type=number], input[type=range], select { width: 100%; background: var(--paper); border: 1.5px solid var(--rule); border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--ink); padding: 7px 10px 7px 22px; outline: none; transition: border-color 0.15s; }
+  input[type=number]:focus, select:focus { border-color: var(--ink); }
+  select { padding-left: 10px; appearance: none; cursor: pointer; }
+  .select-wrap { position: relative; }
+  .select-wrap::after { content: '▾'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); font-size: 11px; }
+  input[type=range] { padding: 0; border: none; background: none; accent-color: var(--accent); cursor: pointer; margin-top: 4px; }
+  .range-labels { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+  /* .result-cards layout handled in .results-row */
+  .card { border: 1.5px solid var(--rule); border-radius: 3px; padding: 11px 13px; background: var(--paper); }
+  .card-header { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+  .card-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .card-name { font-family: 'DM Mono', monospace; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .card-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; }
+  .card-item-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .card-item-value { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--ink); }
+  .card-item-value.green { color: var(--tag-ns); } .card-item-value.red { color: var(--accent); }
+
+  .delta-card { border: 1.5px solid var(--ink); border-radius: 3px; padding: 13px 14px; background: var(--ink); color: var(--paper); margin-top: 9px; }
+  .delta-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .delta-label { font-size: 10px; font-weight: 500; letter-spacing: 0.05em; opacity: 0.65; }
+  .delta-val { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; }
+  .delta-val.cut { color: #6ee7b7; } .delta-val.raise { color: #fca5a5; } .delta-val.zero { color: #d1d5db; }
+
+  .note-box { background: rgba(198,84,49,0.07); border-left: 3px solid var(--accent); padding: 8px 10px; font-size: 11px; color: var(--muted); border-radius: 0 3px 3px 0; line-height: 1.45; margin-top: 9px; display: none; }
+  .note-box strong { color: var(--ink); }
+
+  .results-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .result-cards { display: flex; gap: 9px; flex-wrap: wrap; flex: 1 1 auto; }
+  .result-cards .card { flex: 1 1 200px; }
+  #deltaCard { flex: 0 0 auto; min-width: 200px; align-self: flex-start; }
+  #noteBox { flex: 1 1 100%; }
+  .charts-panel { padding: 28px 32px; display: flex; flex-direction: column; gap: 36px; }
+  .chart-title-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .chart-title { font-family: 'DM Serif Display', serif; font-size: 18px; font-weight: 400; }
+  .chart-sub { font-size: 11.5px; color: var(--muted); font-weight: 300; }
+  .chart-rule { border: none; border-top: 1.5px solid var(--ink); margin-bottom: 18px; margin-top: 4px; }
+  .chart-container { position: relative; height: 280px; }
+  .income-marker-label { font-family: 'DM Mono', monospace; font-size: 9.5px; color: var(--accent); margin-top: 6px; text-align: right; letter-spacing: 0.06em; }
+  .chart-annotation { margin-top: 8px; font-size: 11px; color: var(--muted); font-style: italic; }
+
+  @media (max-width: 600px) {
+    header { padding: 16px 16px 14px; flex-direction: column; align-items: flex-start; gap: 10px; }
+    h1 { font-size: 22px; }
+    aside { padding: 18px 16px; }
+    .inputs-row .field.income-field,
+    .inputs-row .field.slider-field,
+    .inputs-row .field.select-field,
+    .inputs-row .field.children-field,
+    .inputs-row .field.chartmax-field { width: 100%; }
+    .charts-panel { padding: 20px 16px; gap: 28px; }
+    .chart-container { height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="eyebrow">Andrew Lautz · 2026 Tax Analysis</div>
+    <h1>Sen. Van Hollen's <em>Personal Exemption</em> Proposal</h1>
+    <p class="subtitle">Compare net tax liability under current law vs. the Van Hollen proposal. The proposal introduces an Alternative Maximum Tax (AMaT): taxpayers pay the lower of their regular income tax or 25.5% of income above a floor ($46k single / $64.4k HoH / $92k MFJ), with the benefit phasing out at higher incomes.</p>
+  </div>
+  <div class="legend-pills">
+    <div class="pill cl"><span class="pill-dot"></span>Current Law</div>
+    <div class="pill ns"><span class="pill-dot"></span>Van Hollen Proposal</div>
+  </div>
+</header>
+
+<div class="main-grid">
+  <aside>
+    <div class="aside-inner">
+      <div class="inputs-row">
+        <div class="field income-field">
+          <label for="income">Gross Income</label>
+          <div class="input-wrap">
+            <span class="prefix">$</span>
+            <input type="number" id="income" value="75000" min="0" max="500000" step="1000">
+          </div>
+        </div>
+        <div class="field slider-field">
+          <label>Slider</label>
+          <input type="range" id="incomeSlider" min="0" max="300000" step="1000" value="75000">
+          <div class="range-labels"><span>$0</span><span>$150k</span><span>$300k</span></div>
+        </div>
+        <div class="field select-field">
+          <label for="filing">Filing Status</label>
+          <div class="select-wrap">
+            <select id="filing">
+              <option value="Single">Single</option>
+              <option value="HoH">Head of Household</option>
+              <option value="MFJ">Married Filing Jointly</option>
+            </select>
+          </div>
+        </div>
+        <div class="field children-field">
+          <label for="children">Children (CTC &amp; EITC)</label>
+          <div class="select-wrap">
+            <select id="children">
+              <option value="0" selected>0 — None</option>
+              <option value="1">1 child</option>
+              <option value="2">2 children</option>
+              <option value="3">3+ children</option>
+            </select>
+          </div>
+        </div>
+        <div class="field chartmax-field">
+          <label for="chartMax">Chart Range</label>
+          <div class="select-wrap">
+            <select id="chartMax">
+              <option value="60000">$60k</option>
+              <option value="100000">$100k</option>
+              <option value="150000">$150k</option>
+              <option value="200000" selected>$200k</option>
+              <option value="300000">$300k</option>
+              <option value="500000">$500k</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px; border-top:1px solid var(--rule); padding-top:16px;">
+        <div class="results-row">
+          <div class="result-cards" id="resultCards"></div>
+          <div id="deltaCard" class="delta-card"></div>
+          <div id="noteBox" class="note-box"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="charts-panel">
+    <div class="chart-block">
+      <div class="chart-title-row">
+        <div class="chart-title">Tax Change vs. Current Law</div>
+        <div class="chart-sub">Net tax difference ($) across income levels — negative = tax cut</div>
+      </div>
+      <hr class="chart-rule">
+      <div class="chart-container"><canvas id="chartCut"></canvas></div>
+      <div class="income-marker-label" id="cutMarkerLabel"></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title-row">
+        <div class="chart-title">Net Tax Liability</div>
+        <div class="chart-sub">Total tax paid (or refund received) across income levels</div>
+      </div>
+      <hr class="chart-rule">
+      <div class="chart-container"><canvas id="chartLevel"></canvas></div>
+      <div class="income-marker-label" id="levelMarkerLabel"></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title-row">
+        <div class="chart-title">Effective Marginal Tax Rates</div>
+        <div class="chart-sub">EMTR on next $1,000 of income — includes income tax, CTC, and EITC interactions</div>
+      </div>
+      <hr class="chart-rule">
+      <div class="chart-container"><canvas id="chartEMTR"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tax Parameters ─────────────────────────────────────────────────────────────
+var PARAMS = {
+  Single: {
+    sd: 16100,
+    // AMaT parameters: VH benefit applies below amatCeiling; AMaT = 25.5% × (income − amatFloor)
+    amatFloor: 46000, amatCeiling: 80500,
+    brackets: [12400, 50400, 105700, 201775, 256225, 640600],
+    ctcPhaseoutStart: 200000,
+    eitcPhaseoutStart: 10860,   // single/HoH childless
+  },
+  HoH: {
+    sd: 24150,
+    amatFloor: 64400, amatCeiling: 112700,
+    brackets: [17700, 67450, 105700, 201750, 256200, 640600],
+    ctcPhaseoutStart: 200000,
+    eitcPhaseoutStart: 10860,
+  },
+  MFJ: {
+    sd: 32200,
+    amatFloor: 92000, amatCeiling: 161000,
+    brackets: [24800, 100800, 211400, 403550, 512450, 768700],
+    ctcPhaseoutStart: 400000,
+    eitcPhaseoutStart: 18140,   // MFJ childless
+  },
+};
+var RATES = [0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37];
+
+// EITC parameters by child count (0, 1, 2, 3+)
+// phaseoutStart for children>0: single/HoH = $23,890, MFJ = $31,160
+var EITC_PARAMS = [
+  { phaseInRate: 0.0765, maxCredit: 664,  phaseOutRate: 0.0765, phaseOutStartSingle: 10860, phaseOutStartMFJ: 18140 },
+  { phaseInRate: 0.34,   maxCredit: 4427, phaseOutRate: 0.1598, phaseOutStartSingle: 23890, phaseOutStartMFJ: 31160 },
+  { phaseInRate: 0.40,   maxCredit: 7316, phaseOutRate: 0.2106, phaseOutStartSingle: 23890, phaseOutStartMFJ: 31160 },
+  { phaseInRate: 0.45,   maxCredit: 8231, phaseOutRate: 0.2106, phaseOutStartSingle: 23890, phaseOutStartMFJ: 31160 },
+];
+
+// CTC parameters
+var CTC_MAX           = 2200;
+var CTC_REFUNDABLE    = 1700;
+var CTC_PHASEIN_FLOOR = 2500;
+var CTC_PHASEIN_RATE  = 0.15;
+var CTC_PHASEOUT_RATE = 0.05;  // 5% per $1,000 (or fraction) above threshold
+
+// ── Core math ─────────────────────────────────────────────────────────────────
+function bracketTax(ti, filing) {
+  if (ti <= 0) return 0;
+  var b = PARAMS[filing].brackets;
+  return (
+    Math.max(0, Math.min(ti, b[0])) * RATES[0] +
+    Math.max(0, Math.min(ti, b[1]) - b[0]) * RATES[1] +
+    Math.max(0, Math.min(ti, b[2]) - b[1]) * RATES[2] +
+    Math.max(0, Math.min(ti, b[3]) - b[2]) * RATES[3] +
+    Math.max(0, Math.min(ti, b[4]) - b[3]) * RATES[4] +
+    Math.max(0, Math.min(ti, b[5]) - b[4]) * RATES[5] +
+    Math.max(0, ti - b[5]) * RATES[6]
+  );
+}
+
+// AMaT (Alternative Maximum Tax): 25.5% × MAX(0, income − amatFloor)
+// Van Hollen benefit: if income < amatCeiling, taxpayer pays MIN(regularTax, AMaT)
+// Credit = MAX(0, regularTax − AMaT), applied before CTC/EITC against pre-credit tax
+function calcAMaT(income, filing) {
+  var p = PARAMS[filing];
+  return Math.max(0, 0.255 * (income - p.amatFloor));
+}
+
+function calcVHCredit(income, filing, regularTax) {
+  var p = PARAMS[filing];
+  if (income >= p.amatCeiling) return 0;
+  var amat = calcAMaT(income, filing);
+  return Math.max(0, regularTax - amat);
+}
+
+// EITC: fully refundable
+// children parameter is capped at 3 (index into EITC_PARAMS)
+function calcEITC(income, filing, children) {
+  var idx = Math.min(children, 3);
+  var ep = EITC_PARAMS[idx];
+  var isMFJ = filing === 'MFJ';
+
+  // Phase-in: credit = phaseInRate * income, up to maxCredit
+  var phaseIn = Math.min(ep.maxCredit, income * ep.phaseInRate);
+
+  // Phase-out: starts at threshold, reduces at phaseOutRate per dollar
+  var poStart = isMFJ ? ep.phaseOutStartMFJ : ep.phaseOutStartSingle;
+  var excess = Math.max(0, income - poStart);
+  var phaseOut = excess * ep.phaseOutRate;
+
+  return Math.max(0, phaseIn - phaseOut);
+}
+
+// CTC logic:
+// 1. ACTC (refundable) phases in first: 15% of earned income above $2,500, capped at $1,700/child
+// 2. Non-refundable CTC stacks on top: absorbs income tax up to remaining $500/child cap
+// 3. Both subject to upper-income phaseout (5% per $1k above threshold on total credit)
+// 4. Total per child never exceeds $2,200
+function calcCTC(income, filing, children, taxBefore) {
+  if (children === 0) return { nonRefundable: 0, refundable: 0, total: 0, eligible: 0 };
+  var p = PARAMS[filing];
+  var maxTotal      = children * CTC_MAX;        // $2,200/child overall cap
+  var maxRefundable = children * CTC_REFUNDABLE;  // $1,700/child ACTC cap
+
+  // Upper-income phaseout reduces total eligible credit
+  var excess = Math.max(0, income - p.ctcPhaseoutStart);
+  var phaseOut = Math.ceil(excess / 1000) * 1000 * CTC_PHASEOUT_RATE;
+  var totalEligible = Math.max(0, maxTotal - phaseOut);
+
+  // Step 1: ACTC phases in first at 15% of earned income above $2,500
+  // capped at $1,700/child and at totalEligible
+  var actcPhaseIn = Math.max(0, income - CTC_PHASEIN_FLOOR) * CTC_PHASEIN_RATE;
+  var refundable  = Math.min(actcPhaseIn, Math.min(maxRefundable, totalEligible));
+
+  // Step 2: Non-refundable CTC fills remaining room up to totalEligible,
+  // but only to the extent of actual income tax liability
+  var nonRefundableMax = Math.max(0, totalEligible - refundable);
+  var nonRefundable    = Math.min(nonRefundableMax, Math.max(0, taxBefore));
+
+  return { nonRefundable: nonRefundable, refundable: refundable, total: nonRefundable + refundable, eligible: totalEligible };
+}
+
+// Net tax after all credits (can be negative = net refund from EITC/ACTC)
+function calcNetTax(income, filing, variant, children) {
+  var p = PARAMS[filing];
+  var ti = Math.max(0, income - p.sd);
+  var taxBefore = bracketTax(ti, filing);
+  // Van Hollen: apply AMaT credit first (reduces pre-credit tax), then CTC/EITC
+  var vhCredit = (variant === 'ns') ? calcVHCredit(income, filing, taxBefore) : 0;
+  var taxAfterVH = taxBefore - vhCredit;
+  var ctc = calcCTC(income, filing, children, taxAfterVH);
+  var eitc = calcEITC(income, filing, children);
+  return taxAfterVH - ctc.total - eitc;
+}
+
+function calcEMTR(income, filing, variant, children) {
+  var delta = 1000;
+  return (calcNetTax(income + delta, filing, variant, children) -
+          calcNetTax(income, filing, variant, children)) / delta;
+}
+
+// ── State ──────────────────────────────────────────────────────────────────────
+var currentIncome   = 75000;
+var currentFiling   = 'Single';
+var currentChildren = 0;
+var currentChartMax = 200000;
+
+// ── Formatters ─────────────────────────────────────────────────────────────────
+function fmt(v) {
+  var r = Math.round(v);
+  return (r < 0 ? '\u2212$' : '$') + Math.abs(r).toLocaleString();
+}
+function fmtp(v) { return (v * 100).toFixed(1) + '%'; }
+function xLabel(v) { return v >= 1000 ? '$' + (v / 1000) + 'k' : '$' + v; }
+
+// ── Render sidebar ─────────────────────────────────────────────────────────────
+function renderResults() {
+  var income   = currentIncome;
+  var filing   = currentFiling;
+  var children = currentChildren;
+  var p = PARAMS[filing];
+
+  var ti = Math.max(0, income - p.sd);
+  var taxBeforeCL = bracketTax(ti, filing);
+  // Van Hollen: same SD, but AMaT credit applied before CTC
+  var vhCredit = calcVHCredit(income, filing, taxBeforeCL);
+  var taxAfterVH = taxBeforeCL - vhCredit;
+  var amat = calcAMaT(income, filing);
+
+  var ctcCL  = calcCTC(income, filing, children, taxBeforeCL);
+  var ctcNS  = calcCTC(income, filing, children, taxAfterVH);
+  var eitcCL = calcEITC(income, filing, children);
+  var eitcNS = eitcCL;
+
+  var tCL = taxBeforeCL - ctcCL.total - eitcCL;
+  var tNS = taxAfterVH  - ctcNS.total - eitcNS;
+
+  var atrCL = income > 0 ? tCL / income : 0;
+  var atrNS = income > 0 ? tNS / income : 0;
+  var emtrCL = calcEMTR(income, filing, 'cl', children);
+  var emtrNS = calcEMTR(income, filing, 'ns', children);
+  var cutNS  = tCL - tNS;
+
+  // Credit rows — show CTC and EITC when nonzero
+  function creditRows(ctc, eitc) {
+    var rows = '';
+    if (children > 0) {
+      rows += '<div class="card-item"><div class="card-item-label">CTC (non-ref.)</div><div class="card-item-value green">\u2212' + fmt(ctc.nonRefundable) + '</div></div>';
+      rows += '<div class="card-item"><div class="card-item-label">ACTC (refund.)</div><div class="card-item-value green">\u2212' + fmt(ctc.refundable) + '</div></div>';
+    }
+    if (eitc > 0.5) {
+      rows += '<div class="card-item"><div class="card-item-label">EITC (refund.)</div><div class="card-item-value green">\u2212' + fmt(eitc) + '</div></div>';
+    }
+    return rows;
+  }
+
+  document.getElementById('resultCards').innerHTML =
+    '<div class="card">' +
+      '<div class="card-header"><div class="card-dot" style="background:var(--tag-cl)"></div><div class="card-name">Current Law (2026)</div></div>' +
+      '<div class="card-rows">' +
+        '<div class="card-item"><div class="card-item-label">Net Tax / Refund</div><div class="card-item-value">' + fmt(tCL) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">Eff. Tax Rate</div><div class="card-item-value">' + fmtp(atrCL) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">Income Tax (pre-credit)</div><div class="card-item-value">' + fmt(taxBeforeCL) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">EMTR</div><div class="card-item-value">' + fmtp(emtrCL) + '</div></div>' +
+        creditRows(ctcCL, eitcCL) +
+      '</div>' +
+    '</div>' +
+    '<div class="card">' +
+      '<div class="card-header"><div class="card-dot" style="background:var(--tag-ns)"></div><div class="card-name">Van Hollen Proposal</div></div>' +
+      '<div class="card-rows">' +
+        '<div class="card-item"><div class="card-item-label">Net Tax / Refund</div><div class="card-item-value">' + fmt(tNS) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">Eff. Tax Rate</div><div class="card-item-value">' + fmtp(atrNS) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">AMaT Credit</div><div class="card-item-value green">' + (vhCredit > 0.5 ? '\u2212' + fmt(vhCredit) : '\u2014') + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">EMTR</div><div class="card-item-value' + (emtrNS > emtrCL + 0.01 ? ' red' : '') + '">' + fmtp(emtrNS) + '</div></div>' +
+        creditRows(ctcNS, eitcNS) +
+      '</div>' +
+    '</div>';
+
+  var cutClass = cutNS > 0.5 ? 'cut' : cutNS < -0.5 ? 'raise' : 'zero';
+  var cutSign  = cutNS >= 0 ? '\u2212' : '+';
+  document.getElementById('deltaCard').innerHTML =
+    '<div class="delta-row">' +
+      '<div class="delta-label">VAN HOLLEN \u2014 NET TAX CHANGE</div>' +
+      '<div class="delta-val ' + cutClass + '">' + cutSign + fmt(Math.abs(cutNS)) + '</div>' +
+    '</div>';
+
+  // Notes
+  var noteBox = document.getElementById('noteBox');
+  var notes = [];
+  var inAmatRange = income < p.amatCeiling && income > p.amatFloor;
+  if (inAmatRange && vhCredit > 0.5) {
+    notes.push('<strong>AMaT credit active:</strong> At $' + income.toLocaleString() + ', the Alternative Maximum Tax floor is <strong>' + fmt(calcAMaT(income, filing)) + '</strong>, capping Van Hollen tax at that level (a <strong>' + fmt(vhCredit) + '</strong> credit vs. regular tax).');
+  } else if (income >= p.amatCeiling) {
+    notes.push('<strong>AMaT benefit phased out:</strong> Above $' + p.amatCeiling.toLocaleString() + ', the Van Hollen proposal provides no benefit for ' + filing + ' filers.');
+  } else if (income > 0 && income <= p.amatFloor) {
+    notes.push('<strong>Below AMaT floor:</strong> At or below $' + p.amatFloor.toLocaleString() + ', the Alternative Maximum Tax is $0 — the proposal provides no benefit at this income level.');
+  }
+  if (eitcCL > 0.5) {
+    var ep = EITC_PARAMS[Math.min(children, 3)];
+    var poStart = filing === 'MFJ' ? ep.phaseOutStartMFJ : ep.phaseOutStartSingle;
+    if (income <= poStart) {
+      notes.push('<strong>EITC phase-in:</strong> The EITC is still building at this income (' + fmtp(ep.phaseInRate) + ' phase-in rate), which creates a negative EMTR contribution of \u2212' + fmtp(ep.phaseInRate) + '.');
+    } else {
+      notes.push('<strong>EITC phaseout:</strong> The EITC is phasing out at ' + fmtp(ep.phaseOutRate) + ' per dollar above ' + xLabel(poStart) + ', adding ' + fmtp(ep.phaseOutRate) + ' to the effective marginal rate on top of the income tax bracket rate.');
+    }
+  }
+  if (notes.length > 0) {
+    noteBox.style.display = 'block';
+    noteBox.innerHTML = notes.join('<br><br>');
+  } else {
+    noteBox.style.display = 'none';
+  }
+}
+
+// ── Charts ─────────────────────────────────────────────────────────────────────
+function buildChartData(maxIncome) {
+  var step = maxIncome <= 100000 ? 500 : maxIncome <= 200000 ? 1000 : 2000;
+  var xs = [], cutNS = [], taxCL = [], taxNS = [], emtrCL = [], emtrNS = [];
+  for (var inc = 0; inc <= maxIncome; inc += step) {
+    xs.push(inc);
+    var tCL = calcNetTax(inc, currentFiling, 'cl', currentChildren);
+    var tNS = calcNetTax(inc, currentFiling, 'ns', currentChildren);
+    taxCL.push(tCL);
+    taxNS.push(tNS);
+    cutNS.push(tCL - tNS);
+    emtrCL.push(calcEMTR(inc, currentFiling, 'cl', currentChildren) * 100);
+    emtrNS.push(calcEMTR(inc, currentFiling, 'ns', currentChildren) * 100);
+  }
+  return { xs: xs, cutNS: cutNS, taxCL: taxCL, taxNS: taxNS, emtrCL: emtrCL, emtrNS: emtrNS };
+}
+
+var BASE_OPTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#0f1117', titleColor: '#f7f4ef', bodyColor: '#d4cfc6',
+      padding: 10, cornerRadius: 3,
+      titleFont: { family: 'DM Mono', size: 13, weight: 'bold' },
+      bodyFont:  { family: 'DM Mono', size: 12 },
+    },
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(0,0,0,0.06)', drawTicks: false },
+      ticks: { font: { family: 'DM Mono', size: 9.5 }, color: '#7a746c', maxTicksLimit: 8 },
+      border: { color: '#0f1117', width: 1.5 },
+    },
+    y: {
+      grid: { color: 'rgba(0,0,0,0.06)', drawTicks: false },
+      ticks: { font: { family: 'DM Mono', size: 9.5 }, color: '#7a746c' },
+      border: { color: '#0f1117', width: 1.5 },
+    },
+  },
+};
+
+var markerPlugin = {
+  id: 'incomeMarker',
+  afterDraw: function(chart) {
+    if (currentIncome > chart.scales.x.max) return;
+    var x = chart.scales.x.getPixelForValue(currentIncome);
+    var top = chart.chartArea.top, bottom = chart.chartArea.bottom;
+    chart.ctx.save();
+    chart.ctx.beginPath();
+    chart.ctx.setLineDash([4, 3]);
+    chart.ctx.strokeStyle = '#c84b31';
+    chart.ctx.lineWidth = 1.5;
+    chart.ctx.moveTo(x, top);
+    chart.ctx.lineTo(x, bottom);
+    chart.ctx.stroke();
+    chart.ctx.restore();
+  }
+};
+
+var chartCut = null, chartLevel = null, chartEMTR = null;
+
+function buildTaxLevelChart(data) {
+  if (chartLevel) chartLevel.destroy();
+  var opts = JSON.parse(JSON.stringify(BASE_OPTS));
+  opts.plugins.tooltip.callbacks = {
+    title: function(items) { return xLabel(Number(items[0].label)); },
+    label: function(item) {
+      var v = Math.round(item.parsed.y);
+      return item.dataset.label + ': ' + fmt(v);
+    }
+  };
+  opts.scales.x.ticks.callback = function(_, i) { return xLabel(data.xs[i]); };
+  opts.scales.y.ticks.callback = function(v) { return (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString(); };
+  opts.scales.y.title = { display: true, text: 'Net Tax / Refund ($)', font: { family: 'DM Mono', size: 9 }, color: '#7a746c' };
+  chartLevel = new Chart(document.getElementById('chartLevel').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: data.xs,
+      datasets: [
+        { label: 'Current Law',        data: data.taxCL, borderColor: '#2563a8', borderDash: [5,3], borderWidth: 2, pointRadius: 0, tension: 0, fill: false },
+        { label: 'Van Hollen Proposal', data: data.taxNS, borderColor: '#1a7a4a', borderWidth: 2,    pointRadius: 0, tension: 0, fill: false },
+      ]
+    },
+    options: opts,
+    plugins: [markerPlugin],
+  });
+}
+
+function buildCutChart(data) {
+  if (chartCut) chartCut.destroy();
+  var opts = JSON.parse(JSON.stringify(BASE_OPTS));
+  opts.plugins.tooltip.callbacks = {
+    title: function(items) { return xLabel(Number(items[0].label)); },
+    label: function(item) {
+      var v = Math.round(item.parsed.y);
+      return item.dataset.label + ': ' + (v >= 0 ? '\u2212$' : '+$') + Math.abs(v).toLocaleString();
+    }
+  };
+  opts.scales.x.ticks.callback = function(_, i) { return xLabel(data.xs[i]); };
+  opts.scales.y.ticks.callback = function(v) { return (v >= 0 ? '\u2212$' : '+$') + Math.abs(Math.round(v)).toLocaleString(); };
+  opts.scales.y.title = { display: true, text: 'Tax Change vs. Current Law', font: { family: 'DM Mono', size: 9 }, color: '#7a746c' };
+  chartCut = new Chart(document.getElementById('chartCut').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: data.xs,
+      datasets: [{
+        label: 'Van Hollen Proposal', data: data.cutNS,
+        borderColor: '#1a7a4a', backgroundColor: 'rgba(26,122,74,0.08)',
+        borderWidth: 2, pointRadius: 0, tension: 0, fill: true,
+      }]
+    },
+    options: opts,
+    plugins: [markerPlugin],
+  });
+}
+
+function buildEMTRChart(data) {
+  if (chartEMTR) chartEMTR.destroy();
+  var opts = JSON.parse(JSON.stringify(BASE_OPTS));
+  opts.plugins.tooltip.callbacks = {
+    title: function(items) { return xLabel(Number(items[0].label)); },
+    label: function(item) { return item.dataset.label + ': ' + item.parsed.y.toFixed(1) + '%'; }
+  };
+  opts.scales.x.ticks.callback = function(_, i) { return xLabel(data.xs[i]); };
+  opts.scales.y.ticks.callback = function(v) { return v + '%'; };
+  opts.scales.y.title = { display: true, text: 'EMTR (%)', font: { family: 'DM Mono', size: 9 }, color: '#7a746c' };
+  opts.scales.y.min = -50;
+  opts.scales.y.suggestedMax = 60;
+  chartEMTR = new Chart(document.getElementById('chartEMTR').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: data.xs,
+      datasets: [
+        { label: 'Current Law',         data: data.emtrCL, borderColor: '#2563a8', borderDash: [5,3], borderWidth: 2, pointRadius: 0, tension: 0, fill: false },
+        { label: 'Van Hollen Proposal',  data: data.emtrNS, borderColor: '#1a7a4a', borderWidth: 2,    pointRadius: 0, tension: 0, fill: false },
+      ]
+    },
+    options: opts,
+    plugins: [markerPlugin],
+  });
+}
+
+function updateCharts() {
+  var data = buildChartData(currentChartMax);
+  buildCutChart(data);
+  buildTaxLevelChart(data);
+  buildEMTRChart(data);
+  document.getElementById('cutMarkerLabel').textContent =
+    currentIncome <= currentChartMax ? '▲ Your income: ' + xLabel(currentIncome) : '';
+  document.getElementById('levelMarkerLabel').textContent =
+    currentIncome <= currentChartMax ? '\u25b2 Your income: ' + xLabel(currentIncome) : '';
+}
+
+function update() { renderResults(); updateCharts(); }
+
+// ── Events ─────────────────────────────────────────────────────────────────────
+document.getElementById('income').addEventListener('input', function(e) {
+  currentIncome = Math.max(0, parseInt(e.target.value) || 0);
+  document.getElementById('incomeSlider').value = Math.min(currentIncome, 300000);
+  update();
+});
+document.getElementById('incomeSlider').addEventListener('input', function(e) {
+  currentIncome = parseInt(e.target.value);
+  document.getElementById('income').value = currentIncome;
+  update();
+});
+document.getElementById('filing').addEventListener('change', function(e) { currentFiling = e.target.value; update(); });
+document.getElementById('children').addEventListener('change', function(e) { currentChildren = parseInt(e.target.value); update(); });
+document.getElementById('chartMax').addEventListener('change', function(e) { currentChartMax = parseInt(e.target.value); update(); });
+
+update();
+</script>
+</body>
+</html>
