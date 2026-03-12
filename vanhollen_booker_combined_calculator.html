@@ -99,7 +99,7 @@
   <div class="header-left">
     <div class="eyebrow">Andrew Lautz · 2026 Tax Analysis</div>
     <h1>2026 Tax Proposals — <em>Three-Way Comparison</em></h1>
-    <p class="subtitle">Compare net federal income tax liability under current law, the Van Hollen proposal, and the Booker proposal. Van Hollen introduces an Alternative Maximum Tax (AMaT): taxpayers pay the lower of regular income tax or 25.5% of income above a floor, with the benefit phasing out above income ceilings. Booker expands the standard deduction and provides a fully refundable per-child CTC.</p>
+    <p class="subtitle">Compare net federal income tax liability under current law, the Van Hollen proposal, and the Booker proposal. Van Hollen introduces an Alternative Maximum Tax (AMaT) — taxpayers pay the lower of regular income tax or 25.5% of income above a floor, with the benefit phasing out above income ceilings — plus a high-income surcharge of 5–12% on MAGI above $1M (Van Hollen only, not current law). Booker expands the standard deduction and provides a fully refundable per-child CTC.</p>
   </div>
   <div class="legend-pills">
     <div class="pill cl"><span class="pill-dot"></span>Current Law</div>
@@ -267,6 +267,16 @@ function bracketTax(ti, filing) {
   );
 }
 
+// Van Hollen surcharge on MAGI — only under VH proposal, not current law
+// 5% on $1M–$2M | 10% on $2M–$5M | 12% above $5M
+function calcSurcharge(income) {
+  return (
+    Math.max(0, Math.min(income, 2000000) - 1000000) * 0.05 +
+    Math.max(0, Math.min(income, 5000000) - 2000000) * 0.10 +
+    Math.max(0, income - 5000000) * 0.12
+  );
+}
+
 function calcAMaT(income, filing) {
   var p = PARAMS[filing];
   return Math.max(0, 0.255 * (income - p.amatFloor));
@@ -344,7 +354,7 @@ function netTax_VH(income, filing, u6, s17, nb) {
   var vhCredit = calcVHCredit(income, filing, tax);
   var taxAfterVH = tax - vhCredit;
   var ctc = calcCTC_CL(income, filing, totalCh, taxAfterVH).total;
-  return taxAfterVH - ctc - calcEITC(income, filing, totalCh);
+  return taxAfterVH - ctc - calcEITC(income, filing, totalCh) + calcSurcharge(income);
 }
 
 function netTax_BK(income, filing, u6, s17, nb) {
@@ -415,6 +425,7 @@ function renderResults() {
   var emtrVH = calcEMTR(netTax_VH, inc, fil, u6, s17, nb);
   var emtrBK = calcEMTR(netTax_BK, inc, fil, u6, s17, nb);
 
+  var surchargeVH = calcSurcharge(inc);
   var cutVH = tCL - tVH;
   var cutBK = tCL - tBK;
 
@@ -461,9 +472,8 @@ function renderResults() {
       '</div></div>';
   }
 
-  var vhExtraRow = vhCredit > 0.5
-    ? row('AMaT Credit', '\u2212' + fmt(vhCredit), 'green')
-    : row('AMaT Credit', '\u2014', '');
+  var vhExtraRow = (vhCredit > 0.5 ? row('AMaT Credit', '\u2212' + fmt(vhCredit), 'green') : row('AMaT Credit', '\u2014', '')) +
+                  (surchargeVH > 0.5 ? row('High-Income Surcharge', '+' + fmt(surchargeVH), 'red') : '');
 
   document.getElementById('resultCards').innerHTML =
     card('var(--cl)', 'Current Law (2026)',  tCL, atrCL, row('Std. Deduction', fmt(p.sd)), emtrCL, creditRowCL()) +
