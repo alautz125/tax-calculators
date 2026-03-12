@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booker Standard Deduction Proposal — Tax Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --ink: #0f1117; --paper: #f7f4ef; --cream: #ede9e1; --rule: #d4cfc6;
+    --accent: #c84b31; --muted: #7a746c; --tag-cl: #2563a8; --tag-ns: #1a5c9e;
+    --tag-bk: #7c3aed;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+  header { border-bottom: 2px solid var(--ink); padding: 28px 48px 22px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .header-left { max-width: 680px; }
+  .eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  h1 { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1.15; font-weight: 400; }
+  h1 em { font-style: italic; color: var(--accent); }
+  .subtitle { margin-top: 6px; font-size: 13px; color: var(--muted); font-weight: 300; max-width: 560px; }
+  .legend-pills { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+  .pill { display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; padding: 5px 10px; border-radius: 2px; border: 1px solid currentColor; white-space: nowrap; }
+  .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.cl { color: var(--tag-cl); } .pill.bk { color: var(--tag-bk); }
+
+  .main-grid { display: flex; flex-direction: column; }
+  aside { background: var(--cream); border-bottom: 1.5px solid var(--ink); padding: 24px 32px; }
+  .aside-inner { max-width: 900px; }
+  .inputs-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; }
+  .inputs-row .field { margin-bottom: 0; flex: 0 0 auto; }
+  .inputs-row .field.income-field  { width: 180px; }
+  .inputs-row .field.slider-field  { width: 220px; }
+  .inputs-row .field.select-field  { width: 200px; }
+  .inputs-row .field.num-field     { width: 120px; }
+  .inputs-row .field.chartmax-field { width: 140px; }
+
+  .section-label { font-family: 'DM Mono', monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule); padding-bottom: 6px; margin-bottom: 14px; margin-top: 20px; }
+  .section-label:first-child { margin-top: 0; }
+  .field { margin-bottom: 14px; }
+  label { display: block; font-size: 11.5px; font-weight: 500; letter-spacing: 0.03em; margin-bottom: 5px; color: var(--ink); }
+  .input-wrap { position: relative; }
+  .input-wrap .prefix { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); pointer-events: none; }
+  input[type=number], input[type=range], select { width: 100%; background: var(--paper); border: 1.5px solid var(--rule); border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--ink); padding: 7px 10px 7px 22px; outline: none; transition: border-color 0.15s; }
+  input[type=number]:focus, select:focus { border-color: var(--ink); }
+  input[type=number].no-prefix { padding-left: 10px; }
+  select { padding-left: 10px; appearance: none; cursor: pointer; }
+  .select-wrap { position: relative; }
+  .select-wrap::after { content: '▾'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); font-size: 11px; }
+  input[type=range] { padding: 0; border: none; background: none; accent-color: var(--accent); cursor: pointer; margin-top: 4px; }
+  .range-labels { display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+  .results-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .result-cards { display: flex; gap: 9px; flex-wrap: wrap; flex: 1 1 auto; }
+  .result-cards .card { flex: 1 1 200px; }
+  #deltaCard { flex: 0 0 auto; min-width: 200px; align-self: flex-start; }
+  #noteBox { flex: 1 1 100%; }
+
+  .card { border: 1.5px solid var(--rule); border-radius: 3px; padding: 11px 13px; background: var(--paper); }
+  .card-header { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+  .card-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .card-name { font-family: 'DM Mono', monospace; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .card-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; }
+  .card-item-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .card-item-value { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--ink); }
+  .card-item-value.green { color: #1a7a4a; } .card-item-value.red { color: var(--accent); }
+
+  .delta-card { border: 1.5px solid var(--ink); border-radius: 3px; padding: 13px 14px; background: var(--ink); color: var(--paper); margin-top: 9px; }
+  .delta-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .delta-label { font-size: 10px; font-weight: 500; letter-spacing: 0.05em; opacity: 0.65; }
+  .delta-val { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; }
+  .delta-val.cut { color: #6ee7b7; } .delta-val.raise { color: #fca5a5; } .delta-val.zero { color: #d1d5db; }
+
+  .note-box { background: rgba(124,58,237,0.07); border-left: 3px solid var(--tag-bk); padding: 8px 10px; font-size: 11px; color: var(--muted); border-radius: 0 3px 3px 0; line-height: 1.45; margin-top: 9px; display: none; }
+  .note-box strong { color: var(--ink); }
+
+  .charts-panel { padding: 28px 32px; display: flex; flex-direction: column; gap: 36px; }
+  .chart-block { }
+  .chart-title-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+  .chart-title { font-family: 'DM Serif Display', serif; font-size: 18px; font-weight: 400; }
+  .chart-sub { font-size: 11.5px; color: var(--muted); font-weight: 300; }
+  .chart-rule { border: none; border-top: 1.5px solid var(--ink); margin-bottom: 18px; margin-top: 4px; }
+  .chart-container { position: relative; height: 280px; }
+  .income-marker-label { font-family: 'DM Mono', monospace; font-size: 9.5px; color: var(--accent); margin-top: 6px; text-align: right; letter-spacing: 0.06em; }
+
+  @media (max-width: 600px) {
+    header { padding: 16px 16px 14px; flex-direction: column; align-items: flex-start; gap: 10px; }
+    h1 { font-size: 22px; }
+    aside { padding: 18px 16px; }
+    .inputs-row .field { width: 100% !important; }
+    .charts-panel { padding: 20px 16px; gap: 28px; }
+    .chart-container { height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="eyebrow">Andrew Lautz · 2026 Tax Analysis</div>
+    <h1>Sen. Booker's <em>Standard Deduction</em> Proposal</h1>
+    <p class="subtitle">Compare net federal income tax liability under current law vs. the Booker proposal. Booker would roughly double the standard deduction and significantly expand the Child Tax Credit. The analysis assumes the standard deduction and Child Tax Credit do not phase out, since the calculator on Booker's website does not currently imply a phaseout. This analysis also does not include Booker's Earned Income Tax Credit expansion, since details are currently unavailable.</p>
+  </div>
+  <div class="legend-pills">
+    <div class="pill cl"><span class="pill-dot"></span>Current Law</div>
+    <div class="pill bk"><span class="pill-dot"></span>Booker Proposal</div>
+  </div>
+</header>
+
+<div class="main-grid">
+  <aside>
+    <div class="aside-inner">
+      <div class="inputs-row">
+        <div class="field income-field">
+          <label for="income">Gross Income</label>
+          <div class="input-wrap">
+            <span class="prefix">$</span>
+            <input type="number" id="income" value="75000" min="0" max="500000" step="1000">
+          </div>
+        </div>
+        <div class="field slider-field">
+          <label>Slider</label>
+          <input type="range" id="incomeSlider" min="0" max="300000" step="1000" value="75000">
+          <div class="range-labels"><span>$0</span><span>$150k</span><span>$300k</span></div>
+        </div>
+        <div class="field select-field">
+          <label for="filing">Filing Status</label>
+          <div class="select-wrap">
+            <select id="filing">
+              <option value="Single">Single</option>
+              <option value="HoH">Head of Household</option>
+              <option value="MFJ">Married Filing Jointly</option>
+            </select>
+          </div>
+        </div>
+        <div class="field num-field">
+          <label for="childUnder6">Children under 6 <span style="font-weight:300;color:var(--muted);font-size:10.5px;">(do NOT double count if you have a newborn — enter newborns separately below)</span></label>
+          <input type="number" id="childUnder6" class="no-prefix" value="0" min="0" max="10" step="1">
+        </div>
+        <div class="field num-field">
+          <label for="child6to17">Children ages 6–17</label>
+          <input type="number" id="child6to17" class="no-prefix" value="0" min="0" max="10" step="1">
+        </div>
+        <div class="field num-field">
+          <label for="childNewborn">Newborns (baby bonus)</label>
+          <input type="number" id="childNewborn" class="no-prefix" value="0" min="0" max="5" step="1">
+        </div>
+        <div class="field chartmax-field">
+          <label for="chartMax">Chart Range</label>
+          <div class="select-wrap">
+            <select id="chartMax">
+              <option value="60000">$60k</option>
+              <option value="100000">$100k</option>
+              <option value="150000">$150k</option>
+              <option value="200000" selected>$200k</option>
+              <option value="300000">$300k</option>
+              <option value="500000">$500k</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px; border-top:1px solid var(--rule); padding-top:16px;">
+        <div class="results-row">
+          <div class="result-cards" id="resultCards"></div>
+          <div id="deltaCard" class="delta-card"></div>
+          <div id="noteBox" class="note-box"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="charts-panel">
+    <div class="chart-block">
+      <div class="chart-title-row">
+        <div class="chart-title">Tax Change vs. Current Law</div>
+        <div class="chart-sub">Net tax difference ($) across income levels — negative = tax cut</div>
+      </div>
+      <hr class="chart-rule">
+      <div class="chart-container"><canvas id="chartCut"></canvas></div>
+      <div class="income-marker-label" id="cutMarkerLabel"></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title-row">
+        <div class="chart-title">Net Tax Liability</div>
+        <div class="chart-sub">Total tax paid (or refund received) across income levels</div>
+      </div>
+      <hr class="chart-rule">
+      <div class="chart-container"><canvas id="chartLevel"></canvas></div>
+      <div class="income-marker-label" id="levelMarkerLabel"></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title-row">
+        <div class="chart-title">Effective Marginal Tax Rates</div>
+        <div class="chart-sub">EMTR on next $1,000 of income — includes income tax, CTC, and EITC interactions</div>
+      </div>
+      <hr class="chart-rule">
+      <div class="chart-container"><canvas id="chartEMTR"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tax Parameters ──────────────────────────────────────────────────────────────
+var PARAMS = {
+  Single: {
+    sdCL: 16100, sdBK: 37500,
+    brackets: [12400, 50400, 105700, 201775, 256225, 640600],
+    ctcPhaseoutStart: 200000,
+  },
+  HoH: {
+    sdCL: 24150, sdBK: 56250,
+    brackets: [17700, 67450, 105700, 201750, 256200, 640600],
+    ctcPhaseoutStart: 200000,
+  },
+  MFJ: {
+    sdCL: 32200, sdBK: 75000,
+    brackets: [24800, 100800, 211400, 403550, 512450, 768700],
+    ctcPhaseoutStart: 400000,
+  },
+};
+var RATES = [0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37];
+
+// EITC parameters — unchanged under both scenarios
+var EITC_PARAMS = [
+  { phaseInRate: 0.0765, maxCredit: 664,  phaseOutRate: 0.0765, phaseOutStartSingle: 10860, phaseOutStartMFJ: 18140 },
+  { phaseInRate: 0.34,   maxCredit: 4427, phaseOutRate: 0.1598, phaseOutStartSingle: 23890, phaseOutStartMFJ: 31160 },
+  { phaseInRate: 0.40,   maxCredit: 7316, phaseOutRate: 0.2106, phaseOutStartSingle: 23890, phaseOutStartMFJ: 31160 },
+  { phaseInRate: 0.45,   maxCredit: 8231, phaseOutRate: 0.2106, phaseOutStartSingle: 23890, phaseOutStartMFJ: 31160 },
+];
+
+// CTC — current law
+var CTC_CL_MAX        = 2200;  // per child, all ages
+var CTC_CL_REFUNDABLE = 1700;  // ACTC cap per child
+var CTC_CL_PI_FLOOR   = 2500;  // phase-in threshold
+var CTC_CL_PI_RATE    = 0.15;
+var CTC_PO_RATE       = 0.05;  // same both scenarios
+
+// CTC — Booker (fully refundable, no phase-in)
+var CTC_BK_UNDER6  = 4320;
+var CTC_BK_6TO17   = 3600;
+var CTC_BK_NEWBORN = 2400;  // baby bonus (birth year, stacks with under-6 rate for age-0)
+
+// ── Core math ───────────────────────────────────────────────────────────────────
+function bracketTax(ti, filing) {
+  if (ti <= 0) return 0;
+  var b = PARAMS[filing].brackets;
+  return (
+    Math.max(0, Math.min(ti, b[0])) * RATES[0] +
+    Math.max(0, Math.min(ti, b[1]) - b[0]) * RATES[1] +
+    Math.max(0, Math.min(ti, b[2]) - b[1]) * RATES[2] +
+    Math.max(0, Math.min(ti, b[3]) - b[2]) * RATES[3] +
+    Math.max(0, Math.min(ti, b[4]) - b[3]) * RATES[4] +
+    Math.max(0, Math.min(ti, b[5]) - b[4]) * RATES[5] +
+    Math.max(0, ti - b[5]) * RATES[6]
+  );
+}
+
+function calcEITC(income, filing, totalChildren) {
+  var idx = Math.min(totalChildren, 3);
+  var ep = EITC_PARAMS[idx];
+  var poStart = filing === 'MFJ' ? ep.phaseOutStartMFJ : ep.phaseOutStartSingle;
+  var phaseIn = Math.min(ep.maxCredit, income * ep.phaseInRate);
+  return Math.max(0, phaseIn - Math.max(0, income - poStart) * ep.phaseOutRate);
+}
+
+// CTC — current law:
+// ACTC (refundable) phases in first at 15% of earnings above $2,500, capped at $1,700/child
+// Non-refundable CTC stacks on top up to remaining $500/child, limited to income tax
+// Both reduced by upper-income phaseout
+function calcCTC_CL(income, filing, totalChildren, taxBefore) {
+  if (totalChildren === 0) return { nonRefundable: 0, refundable: 0, total: 0 };
+  var p = PARAMS[filing];
+  var maxTotal      = totalChildren * CTC_CL_MAX;
+  var maxRefundable = totalChildren * CTC_CL_REFUNDABLE;
+
+  var excess        = Math.max(0, income - p.ctcPhaseoutStart);
+  var phaseOut      = Math.ceil(excess / 1000) * 1000 * CTC_PO_RATE;
+  var totalEligible = Math.max(0, maxTotal - phaseOut);
+
+  var actcPhaseIn  = Math.max(0, income - CTC_CL_PI_FLOOR) * CTC_CL_PI_RATE;
+  var refundable   = Math.min(actcPhaseIn, Math.min(maxRefundable, totalEligible));
+  var nonRefundable = Math.min(Math.max(0, totalEligible - refundable), Math.max(0, taxBefore));
+
+  return { nonRefundable: nonRefundable, refundable: refundable, total: nonRefundable + refundable };
+}
+
+// CTC — Booker:
+// Fully refundable, available from first dollar of earnings
+// Per-child amounts: $4,320 under 6, $3,600 ages 6-17, $2,400 baby bonus
+// Newborns get BOTH the under-6 credit ($4,320) AND the baby bonus ($2,400)
+// Two-part upper-income phaseout:
+//   Phase 1: 5%/1k above $112.5k (S/HoH) or $150k (MFJ), floor = $2,200/child
+//   Phase 2: 5%/1k above $300k (S/HoH) or $400k (MFJ), floor = $0/child
+function calcCTC_BK(income, filing, childUnder6, child6to17, childNewborn) {
+  var totalChildren = childUnder6 + child6to17 + childNewborn;
+  if (totalChildren === 0) return 0;
+
+  // Gross credit before any phaseout
+  var grossCredit = (childUnder6  * CTC_BK_UNDER6) +
+                   (child6to17   * CTC_BK_6TO17)  +
+                   (childNewborn * (CTC_BK_UNDER6 + CTC_BK_NEWBORN));
+
+  // Phase 1 thresholds
+  var p1Start = (filing === 'MFJ') ? 150000 : 112500;
+  var p1Rate  = 0.05;
+  var p1Floor = totalChildren * 2200;  // floor = $2,200 per child
+
+  // Phase 2 thresholds
+  var p2Start = (filing === 'MFJ') ? 400000 : 300000;
+  var p2Rate  = 0.05;
+  var p2Floor = 0;
+
+  // Phase 1 reduction: 5% per $1k (ceiling) above p1Start, but no lower than p1Floor
+  var p1Excess    = Math.max(0, income - p1Start);
+  var p1Reduction = Math.ceil(p1Excess / 1000) * 1000 * p1Rate;
+  var afterPhase1 = Math.max(p1Floor, grossCredit - p1Reduction);
+
+  // Phase 2 reduction: 5% per $1k (ceiling) above p2Start, but no lower than p2Floor
+  var p2Excess    = Math.max(0, income - p2Start);
+  var p2Reduction = Math.ceil(p2Excess / 1000) * 1000 * p2Rate;
+  var afterPhase2 = Math.max(p2Floor, afterPhase1 - p2Reduction);
+
+  return afterPhase2;
+}
+
+function calcNetTax(income, filing, variant, childUnder6, child6to17, childNewborn) {
+  var p = PARAMS[filing];
+  var totalChildren = childUnder6 + child6to17 + childNewborn;
+  var sd  = variant === 'cl' ? p.sdCL : p.sdBK;
+  var ti  = Math.max(0, income - sd);
+  var taxBefore = bracketTax(ti, filing);
+  var ctc, eitc;
+
+  if (variant === 'cl') {
+    ctc  = calcCTC_CL(income, filing, totalChildren, taxBefore).total;
+  } else {
+    ctc  = calcCTC_BK(income, filing, childUnder6, child6to17, childNewborn);
+  }
+  eitc = calcEITC(income, filing, totalChildren);
+  return taxBefore - ctc - eitc;
+}
+
+function calcEMTR(income, filing, variant, childUnder6, child6to17, childNewborn) {
+  return (calcNetTax(income + 1000, filing, variant, childUnder6, child6to17, childNewborn) -
+          calcNetTax(income,        filing, variant, childUnder6, child6to17, childNewborn)) / 1000;
+}
+
+// ── State ───────────────────────────────────────────────────────────────────────
+var currentIncome    = 75000;
+var currentFiling    = 'Single';
+var currentUnder6    = 0;
+var current6to17     = 0;
+var currentNewborn   = 0;
+var currentChartMax  = 200000;
+
+// ── Formatters ──────────────────────────────────────────────────────────────────
+function fmt(v) {
+  var r = Math.round(v);
+  return (r < 0 ? '\u2212$' : '$') + Math.abs(r).toLocaleString();
+}
+function fmtp(v) { return (v * 100).toFixed(1) + '%'; }
+function xLabel(v) { return v >= 1000 ? '$' + (v / 1000) + 'k' : '$' + v; }
+
+// ── Render results ──────────────────────────────────────────────────────────────
+function renderResults() {
+  var income   = currentIncome;
+  var filing   = currentFiling;
+  var u6 = currentUnder6, s17 = current6to17, nb = currentNewborn;
+  var totalChildren = u6 + s17 + nb;
+  var p = PARAMS[filing];
+
+  var tiCL = Math.max(0, income - p.sdCL);
+  var tiBK = Math.max(0, income - p.sdBK);
+  var taxBeforeCL = bracketTax(tiCL, filing);
+  var taxBeforeBK = bracketTax(tiBK, filing);
+
+  var ctcCL_obj = calcCTC_CL(income, filing, totalChildren, taxBeforeCL);
+  var ctcBK     = calcCTC_BK(income, filing, u6, s17, nb);
+  var eitc      = calcEITC(income, filing, totalChildren);
+
+  var tCL = taxBeforeCL - ctcCL_obj.total - eitc;
+  var tBK = taxBeforeBK - ctcBK - eitc;
+
+  var atrCL = income > 0 ? tCL / income : 0;
+  var atrBK = income > 0 ? tBK / income : 0;
+  var emtrCL = calcEMTR(income, filing, 'cl', u6, s17, nb);
+  var emtrBK = calcEMTR(income, filing, 'bk', u6, s17, nb);
+  var cut    = tCL - tBK;
+
+  function creditRowsCL() {
+    var rows = '';
+    if (totalChildren > 0) {
+      rows += '<div class="card-item"><div class="card-item-label">CTC (non-ref.)</div><div class="card-item-value green">\u2212' + fmt(ctcCL_obj.nonRefundable) + '</div></div>';
+      rows += '<div class="card-item"><div class="card-item-label">ACTC (refund.)</div><div class="card-item-value green">\u2212' + fmt(ctcCL_obj.refundable) + '</div></div>';
+    }
+    if (eitc > 0.5) rows += '<div class="card-item"><div class="card-item-label">EITC (refund.)</div><div class="card-item-value green">\u2212' + fmt(eitc) + '</div></div>';
+    return rows;
+  }
+  function creditRowsBK() {
+    var rows = '';
+    if (totalChildren > 0) rows += '<div class="card-item"><div class="card-item-label">CTC (fully refund.)</div><div class="card-item-value green">\u2212' + fmt(ctcBK) + '</div></div>';
+    if (eitc > 0.5) rows += '<div class="card-item"><div class="card-item-label">EITC (refund.)</div><div class="card-item-value green">\u2212' + fmt(eitc) + '</div></div>';
+    return rows;
+  }
+
+  document.getElementById('resultCards').innerHTML =
+    '<div class="card">' +
+      '<div class="card-header"><div class="card-dot" style="background:var(--tag-cl)"></div><div class="card-name">Current Law (2026)</div></div>' +
+      '<div class="card-rows">' +
+        '<div class="card-item"><div class="card-item-label">Net Tax / Refund</div><div class="card-item-value">' + fmt(tCL) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">Eff. Tax Rate</div><div class="card-item-value">' + fmtp(atrCL) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">Std. Deduction</div><div class="card-item-value">' + fmt(p.sdCL) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">EMTR</div><div class="card-item-value">' + fmtp(emtrCL) + '</div></div>' +
+        creditRowsCL() +
+      '</div>' +
+    '</div>' +
+    '<div class="card">' +
+      '<div class="card-header"><div class="card-dot" style="background:var(--tag-bk)"></div><div class="card-name">Booker Proposal</div></div>' +
+      '<div class="card-rows">' +
+        '<div class="card-item"><div class="card-item-label">Net Tax / Refund</div><div class="card-item-value">' + fmt(tBK) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">Eff. Tax Rate</div><div class="card-item-value">' + fmtp(atrBK) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">Std. Deduction</div><div class="card-item-value">' + fmt(p.sdBK) + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">EMTR</div><div class="card-item-value">' + fmtp(emtrBK) + '</div></div>' +
+        creditRowsBK() +
+      '</div>' +
+    '</div>';
+
+  var cutClass = cut > 0.5 ? 'cut' : cut < -0.5 ? 'raise' : 'zero';
+  var cutSign  = cut >= 0 ? '\u2212' : '+';
+  document.getElementById('deltaCard').innerHTML =
+    '<div class="delta-row">' +
+      '<div class="delta-label">BOOKER \u2014 NET TAX CHANGE</div>' +
+      '<div class="delta-val ' + cutClass + '">' + cutSign + fmt(Math.abs(cut)) + '</div>' +
+    '</div>';
+
+  // Notes
+  var noteBox = document.getElementById('noteBox');
+  var notes = [];
+  if (eitc > 0.5) {
+    var ep = EITC_PARAMS[Math.min(totalChildren, 3)];
+    var poStart = filing === 'MFJ' ? ep.phaseOutStartMFJ : ep.phaseOutStartSingle;
+    if (income <= poStart) {
+      notes.push('<strong>EITC phase-in:</strong> At this income the EITC is still building at a ' + fmtp(ep.phaseInRate) + ' phase-in rate, adding a \u2212' + fmtp(ep.phaseInRate) + ' contribution to the EMTR.');
+    } else {
+      notes.push('<strong>EITC phaseout:</strong> The EITC is phasing out at ' + fmtp(ep.phaseOutRate) + ' per dollar above ' + xLabel(poStart) + ', adding ' + fmtp(ep.phaseOutRate) + ' to the effective marginal rate above the bracket rate.');
+    }
+  }
+  if (totalChildren > 0 && income > 0 && income <= CTC_CL_PI_FLOOR + totalChildren * CTC_CL_REFUNDABLE / CTC_CL_PI_RATE) {
+    var actcPhaseIn = Math.max(0, income - CTC_CL_PI_FLOOR) * CTC_CL_PI_RATE;
+    var maxActc = totalChildren * CTC_CL_REFUNDABLE;
+    if (actcPhaseIn < maxActc && income > CTC_CL_PI_FLOOR) {
+      notes.push('<strong>Current law ACTC phase-in:</strong> The refundable child credit is still phasing in at 15 cents per dollar of earnings above $2,500 — contributing \u221215% to the current law EMTR at this income.');
+    }
+  }
+  noteBox.style.display = notes.length > 0 ? 'block' : 'none';
+  noteBox.innerHTML = notes.join('<br><br>');
+}
+
+// ── Charts ──────────────────────────────────────────────────────────────────────
+function buildChartData(maxIncome) {
+  var step = maxIncome <= 100000 ? 500 : maxIncome <= 200000 ? 1000 : 2000;
+  var xs = [], cutBK = [], taxCL = [], taxBK = [], emtrCL = [], emtrBK = [];
+  var u6 = currentUnder6, s17 = current6to17, nb = currentNewborn;
+  for (var inc = 0; inc <= maxIncome; inc += step) {
+    xs.push(inc);
+    var tCL = calcNetTax(inc, currentFiling, 'cl', u6, s17, nb);
+    var tBK = calcNetTax(inc, currentFiling, 'bk', u6, s17, nb);
+    taxCL.push(tCL);
+    taxBK.push(tBK);
+    cutBK.push(tCL - tBK);
+    emtrCL.push(calcEMTR(inc, currentFiling, 'cl', u6, s17, nb) * 100);
+    emtrBK.push(calcEMTR(inc, currentFiling, 'bk', u6, s17, nb) * 100);
+  }
+  return { xs: xs, cutBK: cutBK, taxCL: taxCL, taxBK: taxBK, emtrCL: emtrCL, emtrBK: emtrBK };
+}
+
+var BASE_OPTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode: 'index', intersect: false },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#0f1117', titleColor: '#f7f4ef', bodyColor: '#d4cfc6',
+      padding: 10, cornerRadius: 3,
+      titleFont: { family: 'DM Mono', size: 13, weight: 'bold' },
+      bodyFont:  { family: 'DM Mono', size: 12 },
+    },
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(0,0,0,0.06)', drawTicks: false },
+      ticks: { font: { family: 'DM Mono', size: 9.5 }, color: '#7a746c', maxTicksLimit: 8 },
+      border: { color: '#0f1117', width: 1.5 },
+    },
+    y: {
+      grid: { color: 'rgba(0,0,0,0.06)', drawTicks: false },
+      ticks: { font: { family: 'DM Mono', size: 9.5 }, color: '#7a746c' },
+      border: { color: '#0f1117', width: 1.5 },
+    },
+  },
+};
+
+var markerPlugin = {
+  id: 'incomeMarker',
+  afterDraw: function(chart) {
+    if (currentIncome > chart.scales.x.max) return;
+    var x = chart.scales.x.getPixelForValue(currentIncome);
+    var top = chart.chartArea.top, bottom = chart.chartArea.bottom;
+    chart.ctx.save();
+    chart.ctx.beginPath();
+    chart.ctx.setLineDash([4, 3]);
+    chart.ctx.strokeStyle = '#c84b31';
+    chart.ctx.lineWidth = 1.5;
+    chart.ctx.moveTo(x, top); chart.ctx.lineTo(x, bottom);
+    chart.ctx.stroke();
+    chart.ctx.restore();
+  }
+};
+
+var chartCut = null, chartLevel = null, chartEMTR = null;
+
+function buildCutChart(data) {
+  if (chartCut) chartCut.destroy();
+  var opts = JSON.parse(JSON.stringify(BASE_OPTS));
+  opts.plugins.tooltip.callbacks = {
+    title: function(items) { return xLabel(Number(items[0].label)); },
+    label: function(item) {
+      var v = Math.round(item.parsed.y);
+      return item.dataset.label + ': ' + (v >= 0 ? '\u2212$' : '+$') + Math.abs(v).toLocaleString();
+    }
+  };
+  opts.scales.x.ticks.callback = function(_, i) { return xLabel(data.xs[i]); };
+  opts.scales.y.ticks.callback = function(v) { return (v >= 0 ? '\u2212$' : '+$') + Math.abs(Math.round(v)).toLocaleString(); };
+  opts.scales.y.title = { display: true, text: 'Tax Change vs. Current Law', font: { family: 'DM Mono', size: 9 }, color: '#7a746c' };
+  chartCut = new Chart(document.getElementById('chartCut').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: data.xs,
+      datasets: [{ label: 'Booker Proposal', data: data.cutBK,
+        borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.07)',
+        borderWidth: 2, pointRadius: 0, tension: 0, fill: true }]
+    },
+    options: opts, plugins: [markerPlugin],
+  });
+}
+
+function buildLevelChart(data) {
+  if (chartLevel) chartLevel.destroy();
+  var opts = JSON.parse(JSON.stringify(BASE_OPTS));
+  opts.plugins.tooltip.callbacks = {
+    title: function(items) { return xLabel(Number(items[0].label)); },
+    label: function(item) { return item.dataset.label + ': ' + fmt(Math.round(item.parsed.y)); }
+  };
+  opts.scales.x.ticks.callback = function(_, i) { return xLabel(data.xs[i]); };
+  opts.scales.y.ticks.callback = function(v) { return (v < 0 ? '\u2212$' : '$') + Math.abs(Math.round(v)).toLocaleString(); };
+  opts.scales.y.title = { display: true, text: 'Net Tax / Refund ($)', font: { family: 'DM Mono', size: 9 }, color: '#7a746c' };
+  chartLevel = new Chart(document.getElementById('chartLevel').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: data.xs,
+      datasets: [
+        { label: 'Current Law',     data: data.taxCL, borderColor: '#2563a8', borderDash: [5,3], borderWidth: 2, pointRadius: 0, tension: 0, fill: false },
+        { label: 'Booker Proposal', data: data.taxBK, borderColor: '#7c3aed', borderWidth: 2,    pointRadius: 0, tension: 0, fill: false },
+      ]
+    },
+    options: opts, plugins: [markerPlugin],
+  });
+}
+
+function buildEMTRChart(data) {
+  if (chartEMTR) chartEMTR.destroy();
+  var opts = JSON.parse(JSON.stringify(BASE_OPTS));
+  opts.plugins.tooltip.callbacks = {
+    title: function(items) { return xLabel(Number(items[0].label)); },
+    label: function(item) { return item.dataset.label + ': ' + item.parsed.y.toFixed(1) + '%'; }
+  };
+  opts.scales.x.ticks.callback = function(_, i) { return xLabel(data.xs[i]); };
+  opts.scales.y.ticks.callback = function(v) { return v + '%'; };
+  opts.scales.y.title = { display: true, text: 'EMTR (%)', font: { family: 'DM Mono', size: 9 }, color: '#7a746c' };
+  opts.scales.y.min = -50;
+  opts.scales.y.suggestedMax = 60;
+  chartEMTR = new Chart(document.getElementById('chartEMTR').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: data.xs,
+      datasets: [
+        { label: 'Current Law',     data: data.emtrCL, borderColor: '#2563a8', borderDash: [5,3], borderWidth: 2, pointRadius: 0, tension: 0, fill: false },
+        { label: 'Booker Proposal', data: data.emtrBK, borderColor: '#7c3aed', borderWidth: 2,    pointRadius: 0, tension: 0, fill: false },
+      ]
+    },
+    options: opts, plugins: [markerPlugin],
+  });
+}
+
+function updateCharts() {
+  var data = buildChartData(currentChartMax);
+  buildCutChart(data);
+  buildLevelChart(data);
+  buildEMTRChart(data);
+  var label = currentIncome <= currentChartMax ? '\u25b2 Your income: ' + xLabel(currentIncome) : '';
+  document.getElementById('cutMarkerLabel').textContent   = label;
+  document.getElementById('levelMarkerLabel').textContent = label;
+}
+
+function update() { renderResults(); updateCharts(); }
+
+// ── Events ──────────────────────────────────────────────────────────────────────
+document.getElementById('income').addEventListener('input', function(e) {
+  currentIncome = Math.max(0, parseInt(e.target.value) || 0);
+  document.getElementById('incomeSlider').value = Math.min(currentIncome, 300000);
+  update();
+});
+document.getElementById('incomeSlider').addEventListener('input', function(e) {
+  currentIncome = parseInt(e.target.value);
+  document.getElementById('income').value = currentIncome;
+  update();
+});
+document.getElementById('filing').addEventListener('change', function(e) { currentFiling = e.target.value; update(); });
+document.getElementById('childUnder6').addEventListener('input', function(e) { currentUnder6  = Math.max(0, parseInt(e.target.value) || 0); update(); });
+document.getElementById('child6to17').addEventListener('input',  function(e) { current6to17   = Math.max(0, parseInt(e.target.value) || 0); update(); });
+document.getElementById('childNewborn').addEventListener('input', function(e) { currentNewborn = Math.max(0, parseInt(e.target.value) || 0); update(); });
+document.getElementById('chartMax').addEventListener('change', function(e) { currentChartMax = parseInt(e.target.value); update(); });
+
+update();
+</script>
+</body>
+</html>
