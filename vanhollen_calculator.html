@@ -103,7 +103,7 @@
   <div class="header-left">
     <div class="eyebrow">Andrew Lautz · 2026 Tax Analysis</div>
     <h1>Sen. Van Hollen's <em>Personal Exemption</em> Proposal</h1>
-    <p class="subtitle">Compare net tax liability under current law vs. the Van Hollen proposal. The proposal introduces an Alternative Maximum Tax (AMaT): taxpayers pay the lower of their regular income tax or 25.5% of income above a floor ($46k single / $64.4k HoH / $92k MFJ), with the benefit phasing out at higher incomes.</p>
+    <p class="subtitle">Compare net tax liability under current law vs. the Van Hollen proposal. The proposal introduces an Alternative Maximum Tax (AMaT) — taxpayers pay the lower of regular income tax or 25.5% of income above a floor ($46k single / $64.4k HoH / $92k MFJ), with the benefit phasing out at higher incomes — plus a high-income surcharge of 5–12% on MAGI above $1M, applicable only under the Van Hollen proposal.</p>
   </div>
   <div class="legend-pills">
     <div class="pill cl"><span class="pill-dot"></span>Current Law</div>
@@ -264,6 +264,18 @@ function bracketTax(ti, filing) {
   );
 }
 
+// Van Hollen surcharge on MAGI (gross income), stacks on top of regular income tax
+// Applies under both current law and Van Hollen (separate from AMaT mechanism)
+// 5% on $1M–$2M | 10% on $2M–$5M | 12% above $5M
+function calcSurcharge(income, variant) {
+  if (variant === 'cl') return 0;  // surcharge is a Van Hollen proposal element
+  return (
+    Math.max(0, Math.min(income, 2000000) - 1000000) * 0.05 +
+    Math.max(0, Math.min(income, 5000000) - 2000000) * 0.10 +
+    Math.max(0, income - 5000000) * 0.12
+  );
+}
+
 // AMaT (Alternative Maximum Tax): 25.5% × MAX(0, income − amatFloor)
 // Van Hollen benefit: if income < amatCeiling, taxpayer pays MIN(regularTax, AMaT)
 // Credit = MAX(0, regularTax − AMaT), applied before CTC/EITC against pre-credit tax
@@ -336,7 +348,8 @@ function calcNetTax(income, filing, variant, children) {
   var taxAfterVH = taxBefore - vhCredit;
   var ctc = calcCTC(income, filing, children, taxAfterVH);
   var eitc = calcEITC(income, filing, children);
-  return taxAfterVH - ctc.total - eitc;
+  var surcharge = calcSurcharge(income, variant);
+  return taxAfterVH - ctc.total - eitc + surcharge;
 }
 
 function calcEMTR(income, filing, variant, children) {
@@ -372,6 +385,7 @@ function renderResults() {
   var vhCredit = calcVHCredit(income, filing, taxBeforeCL);
   var taxAfterVH = taxBeforeCL - vhCredit;
   var amat = calcAMaT(income, filing);
+  var surchargeNS = calcSurcharge(income, 'ns');
 
   var ctcCL  = calcCTC(income, filing, children, taxBeforeCL);
   var ctcNS  = calcCTC(income, filing, children, taxAfterVH);
@@ -379,7 +393,7 @@ function renderResults() {
   var eitcNS = eitcCL;
 
   var tCL = taxBeforeCL - ctcCL.total - eitcCL;
-  var tNS = taxAfterVH  - ctcNS.total - eitcNS;
+  var tNS = taxAfterVH  - ctcNS.total - eitcNS + surchargeNS;
 
   var atrCL = income > 0 ? tCL / income : 0;
   var atrNS = income > 0 ? tNS / income : 0;
@@ -417,6 +431,7 @@ function renderResults() {
         '<div class="card-item"><div class="card-item-label">Net Tax / Refund</div><div class="card-item-value">' + fmt(tNS) + '</div></div>' +
         '<div class="card-item"><div class="card-item-label">Eff. Tax Rate</div><div class="card-item-value">' + fmtp(atrNS) + '</div></div>' +
         '<div class="card-item"><div class="card-item-label">AMaT Credit</div><div class="card-item-value green">' + (vhCredit > 0.5 ? '\u2212' + fmt(vhCredit) : '\u2014') + '</div></div>' +
+        (surchargeNS > 0.5 ? '<div class="card-item"><div class="card-item-label">High-Income Surcharge</div><div class="card-item-value red">+' + fmt(surchargeNS) + '</div></div>' : '') +
         '<div class="card-item"><div class="card-item-label">EMTR</div><div class="card-item-value' + (emtrNS > emtrCL + 0.01 ? ' red' : '') + '">' + fmtp(emtrNS) + '</div></div>' +
         creditRows(ctcNS, eitcNS) +
       '</div>' +
@@ -440,6 +455,10 @@ function renderResults() {
     notes.push('<strong>AMaT benefit phased out:</strong> Above $' + p.amatCeiling.toLocaleString() + ', the Van Hollen proposal provides no benefit for ' + filing + ' filers.');
   } else if (income > 0 && income <= p.amatFloor) {
     notes.push('<strong>Below AMaT floor:</strong> At or below $' + p.amatFloor.toLocaleString() + ', the Alternative Maximum Tax is $0 — the proposal provides no benefit at this income level.');
+  }
+  if (surchargeNS > 0.5) {
+    var surchargeRate = income > 5000000 ? '12%' : income > 2000000 ? '10%' : '5%';
+    notes.push('<strong>High-income surcharge:</strong> The Van Hollen proposal adds a ' + surchargeRate + ' surcharge on income above $1,000,000 (5% on $1M–$2M, 10% on $2M–$5M, 12% above $5M), adding <strong>+' + fmt(surchargeNS) + '</strong> to the Van Hollen tax bill vs. current law at this income level.');
   }
   if (eitcCL > 0.5) {
     var ep = EITC_PARAMS[Math.min(children, 3)];
