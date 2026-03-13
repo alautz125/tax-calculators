@@ -472,7 +472,7 @@ function renderResults() {
       '</div></div>';
   }
 
-  var vhExtraRow = (vhCredit > 0.5 ? row('AMaT Credit', '\u2212' + fmt(vhCredit), 'green') : row('AMaT Credit', '\u2014', '')) +
+  var vhExtraRow = (vhCredit > 0.5 ? row('AMaT Tax Cut', '\u2212' + fmt(vhCredit), 'green') : row('AMaT Tax Cut', '\u2014', '')) +
                   (surchargeVH > 0.5 ? row('High-Income Surcharge', '+' + fmt(surchargeVH), 'red') : '');
 
   document.getElementById('resultCards').innerHTML =
@@ -497,7 +497,7 @@ function renderResults() {
   var notes = [];
   var inAmatRange = inc < p.amatCeiling && inc > p.amatFloor;
   if (inAmatRange && vhCredit > 0.5) {
-    notes.push('<strong>Van Hollen AMaT credit active:</strong> At $' + inc.toLocaleString() + ', the Alternative Maximum Tax floor is <strong>' + fmt(calcAMaT(inc, fil)) + '</strong>, providing a <strong>' + fmt(vhCredit) + '</strong> credit vs. regular tax.');
+    notes.push('<strong>Van Hollen AMaT active:</strong> At $' + inc.toLocaleString() + ', the Alternative Maximum Tax floor is <strong>' + fmt(calcAMaT(inc, fil)) + '</strong>, providing a <strong>' + fmt(vhCredit) + '</strong> credit vs. regular tax.');
   } else if (inc >= p.amatCeiling) {
     notes.push('<strong>Van Hollen benefit phased out:</strong> Above $' + p.amatCeiling.toLocaleString() + ', the Van Hollen proposal provides no benefit for ' + fil + ' filers.');
   }

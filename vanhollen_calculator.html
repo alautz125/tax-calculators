@@ -103,7 +103,7 @@
   <div class="header-left">
     <div class="eyebrow">Andrew Lautz · 2026 Tax Analysis</div>
     <h1>Sen. Van Hollen's <em>Personal Exemption</em> Proposal</h1>
-    <p class="subtitle">Compare net tax liability under current law vs. the Van Hollen proposal. The proposal introduces an Alternative Maximum Tax (AMaT) — taxpayers pay the lower of regular income tax or 25.5% of income above a floor ($46k single / $64.4k HoH / $92k MFJ), with the benefit phasing out at higher incomes — plus a high-income surcharge of 5–12% on MAGI above $1M, applicable only under the Van Hollen proposal.</p>
+    <p class="subtitle">Compare net tax liability under current law vs. the Van Hollen proposal. The proposal introduces an Alternative Maximum Tax (AMaT) — taxpayers pay the lower of regular income tax or 25.5% of income above an exemption ($46k single / $64.4k HoH / $92k MFJ), with the benefit phasing out at higher incomes — plus a high-income surcharge of 5–12% on MAGI above $1M, applicable only under the Van Hollen proposal. Calculator incorporates the standard deduction, Child Tax Credit, and Earned Income Tax Credit, but not itemized deductions, the alternative minimum tax (AMT), or other interactions.</p>
   </div>
   <div class="legend-pills">
     <div class="pill cl"><span class="pill-dot"></span>Current Law</div>
@@ -430,7 +430,7 @@ function renderResults() {
       '<div class="card-rows">' +
         '<div class="card-item"><div class="card-item-label">Net Tax / Refund</div><div class="card-item-value">' + fmt(tNS) + '</div></div>' +
         '<div class="card-item"><div class="card-item-label">Eff. Tax Rate</div><div class="card-item-value">' + fmtp(atrNS) + '</div></div>' +
-        '<div class="card-item"><div class="card-item-label">AMaT Credit</div><div class="card-item-value green">' + (vhCredit > 0.5 ? '\u2212' + fmt(vhCredit) : '\u2014') + '</div></div>' +
+        '<div class="card-item"><div class="card-item-label">AMaT Tax Cut</div><div class="card-item-value green">' + (vhCredit > 0.5 ? '\u2212' + fmt(vhCredit) : '\u2014') + '</div></div>' +
         (surchargeNS > 0.5 ? '<div class="card-item"><div class="card-item-label">High-Income Surcharge</div><div class="card-item-value red">+' + fmt(surchargeNS) + '</div></div>' : '') +
         '<div class="card-item"><div class="card-item-label">EMTR</div><div class="card-item-value' + (emtrNS > emtrCL + 0.01 ? ' red' : '') + '">' + fmtp(emtrNS) + '</div></div>' +
         creditRows(ctcNS, eitcNS) +
@@ -450,7 +450,7 @@ function renderResults() {
   var notes = [];
   var inAmatRange = income < p.amatCeiling && income > p.amatFloor;
   if (inAmatRange && vhCredit > 0.5) {
-    notes.push('<strong>AMaT credit active:</strong> At $' + income.toLocaleString() + ', the Alternative Maximum Tax floor is <strong>' + fmt(calcAMaT(income, filing)) + '</strong>, capping Van Hollen tax at that level (a <strong>' + fmt(vhCredit) + '</strong> credit vs. regular tax).');
+    notes.push('<strong>AMaT active:</strong> At $' + income.toLocaleString() + ', the Alternative Maximum Tax floor is <strong>' + fmt(calcAMaT(income, filing)) + '</strong>, capping Van Hollen tax at that level (a <strong>' + fmt(vhCredit) + '</strong> credit vs. regular tax).');
   } else if (income >= p.amatCeiling) {
     notes.push('<strong>AMaT benefit phased out:</strong> Above $' + p.amatCeiling.toLocaleString() + ', the Van Hollen proposal provides no benefit for ' + filing + ' filers.');
   } else if (income > 0 && income <= p.amatFloor) {
