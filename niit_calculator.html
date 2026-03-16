@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIIT Calculator — Current Law</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1a1a;
+    --ink-2: #4a4a4a;
+    --ink-3: #888;
+    --ink-4: #bbb;
+    --surface: #fafaf8;
+    --surface-2: #f2f1ee;
+    --surface-3: #e8e7e3;
+    --accent: #1d4e89;
+    --accent-light: #e8eff8;
+    --accent-mid: #b8cce4;
+    --danger: #b5322a;
+    --danger-light: #fdf0ef;
+    --success: #2a6e3f;
+    --success-light: #edf7f1;
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.18);
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 20px 80px;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  /* Header */
+  .header { margin-bottom: 36px; }
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+  }
+  .title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px;
+    color: var(--ink);
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--ink-3);
+    line-height: 1.6;
+  }
+
+  /* Card */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 20px;
+  }
+
+  /* Filing status */
+  .seg-wrap {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .seg {
+    padding: 9px 6px;
+    font-size: 13px;
+    font-weight: 400;
+    text-align: center;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .seg:last-child { border-right: none; }
+  .seg:hover:not(.active) { background: var(--surface-2); }
+  .seg.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  /* Field */
+  .field { margin-top: 20px; }
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+  .field-hint {
+    font-size: 11px;
+    color: var(--ink-3);
+    font-weight: 400;
+    margin-left: 6px;
+  }
+  .input-wrap { position: relative; }
+  .input-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--ink-3);
+    pointer-events: none;
+    user-select: none;
+  }
+  .dollar-input {
+    width: 100%;
+    padding: 10px 12px 10px 26px;
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .dollar-input:focus { border-color: var(--accent); background: #fff; }
+  .dollar-input::placeholder { color: var(--ink-4); }
+
+  /* Result card */
+  .result-card {
+    background: var(--accent-light);
+    border: 1px solid var(--accent-mid);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 16px;
+  }
+  .result-card.no-tax {
+    background: var(--surface-2);
+    border-color: var(--border);
+  }
+  .result-card.has-tax {
+    background: var(--danger-light);
+    border-color: #e8b4b2;
+  }
+  .result-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .result-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .result-amount {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .result-amount.has-tax { color: var(--danger); }
+  .result-note {
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  /* Breakdown */
+  .breakdown-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .breakdown-header {
+    padding: 12px 20px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row.highlight {
+    background: var(--accent-light);
+  }
+  .breakdown-row.rate-row {
+    background: var(--surface);
+  }
+  .row-label { color: var(--ink-2); }
+  .row-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .row-val.muted { color: var(--ink-3); font-weight: 400; }
+  .row-val.accent { color: var(--accent); }
+  .lesser-tag {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--accent);
+    color: #fff;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-weight: 500;
+  }
+
+  /* Footer note */
+  .footer-note {
+    font-size: 11px;
+    color: var(--ink-4);
+    line-height: 1.6;
+    padding: 0 4px;
+  }
+  .footer-note strong { font-weight: 500; color: var(--ink-3); }
+
+  /* Threshold badge */
+  .threshold-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-light);
+    border: 1px solid var(--accent-mid);
+    border-radius: 4px;
+    padding: 3px 8px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="eyebrow">Federal Tax · Current Law</div>
+    <h1 class="title">NIIT Calculator</h1>
+    <p class="subtitle">Net Investment Income Tax — IRC §1411. Calculates NIIT liability as 3.8% of the lesser of net investment income or MAGI above the applicable threshold.</p>
+  </div>
+
+  <!-- Inputs -->
+  <div class="card">
+    <div class="card-title">Taxpayer inputs</div>
+
+    <div class="field">
+      <label class="field-label">Filing status</label>
+      <div class="seg-wrap">
+        <button class="seg active" onclick="setStatus('single',this)">Single</button>
+        <button class="seg" onclick="setStatus('mfj',this)">MFJ</button>
+        <button class="seg" onclick="setStatus('mfs',this)">MFS</button>
+        <button class="seg" onclick="setStatus('hoh',this)">HoH</button>
+      </div>
+      <div class="threshold-badge" id="threshold-badge">Threshold: $200,000</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="magi">Modified adjusted gross income (MAGI)</label>
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input class="dollar-input" id="magi" type="text" inputmode="numeric" placeholder="0" oninput="formatAndCalc('magi')">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="nii">Net investment income (NII) <span class="field-hint">must be ≤ MAGI</span></label>
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input class="dollar-input" id="nii" type="text" inputmode="numeric" placeholder="0" oninput="formatAndCalc('nii')">
+      </div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="result-card">
+    <div class="result-top">
+      <span class="result-label">NIIT owed</span>
+    </div>
+    <div class="result-amount" id="result-amount">$0.00</div>
+    <div class="result-note" id="result-note">Enter your MAGI and NII above to calculate.</div>
+  </div>
+
+  <!-- Breakdown -->
+  <div class="breakdown-card">
+    <div class="breakdown-header">Calculation breakdown</div>
+    <div class="breakdown-row">
+      <span class="row-label">NIIT threshold</span>
+      <span class="row-val accent" id="b-threshold">$200,000</span>
+    </div>
+    <div class="breakdown-row">
+      <span class="row-label">MAGI</span>
+      <span class="row-val" id="b-magi">—</span>
+    </div>
+    <div class="breakdown-row">
+      <span class="row-label">MAGI above threshold</span>
+      <span class="row-val" id="b-excess">—</span>
+    </div>
+    <div class="breakdown-row">
+      <span class="row-label">Net investment income</span>
+      <span class="row-val" id="b-nii">—</span>
+    </div>
+    <div class="breakdown-row highlight">
+      <span class="row-label">Tax base (lesser amount)</span>
+      <span class="row-val" id="b-base">—</span>
+    </div>
+    <div class="breakdown-row rate-row">
+      <span class="row-label">NIIT rate</span>
+      <span class="row-val accent">3.800%</span>
+    </div>
+    <div class="breakdown-row">
+      <span class="row-label" style="font-weight:500">NIIT liability</span>
+      <span class="row-val" id="b-niit" style="font-weight:500">$0.00</span>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    <strong>Current law thresholds (IRC §1411, not inflation-indexed):</strong> Single / HoH: $200,000 · MFJ: $250,000 · MFS: $125,000. NIIT applies to the lesser of NII or the amount by which MAGI exceeds the applicable threshold. NIIT does not apply if MAGI is at or below the threshold, regardless of NII.
+  </p>
+
+</div>
+
+<script>
+  const THRESHOLDS = { single: 200000, mfj: 250000, mfs: 125000, hoh: 200000 };
+  const THRESHOLD_LABELS = {
+    single: 'Threshold: $200,000 (single)',
+    mfj:    'Threshold: $250,000 (MFJ)',
+    mfs:    'Threshold: $125,000 (MFS)',
+    hoh:    'Threshold: $200,000 (HoH)'
+  };
+  let status = 'single';
+  let rawMagi = 0, rawNii = 0;
+
+  function setStatus(s, btn) {
+    status = s;
+    document.querySelectorAll('.seg').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('threshold-badge').textContent = THRESHOLD_LABELS[s];
+    calc();
+  }
+
+  function parse(val) {
+    return parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
+  }
+
+  function fmt(n) {
+    if (n === null || isNaN(n)) return '—';
+    return '$' + Math.round(n).toLocaleString('en-US');
+  }
+
+  function fmtFull(n) {
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatAndCalc(id) {
+    const el = document.getElementById(id);
+    const raw = parse(el.value);
+    if (id === 'magi') rawMagi = raw;
+    if (id === 'nii')  rawNii  = raw;
+    calc();
+  }
+
+  function calc() {
+    const threshold = THRESHOLDS[status];
+    const magi = rawMagi;
+    const nii  = rawNii;
+    const excess = Math.max(0, magi - threshold);
+
+    document.getElementById('b-threshold').textContent = fmt(threshold);
+    document.getElementById('b-magi').textContent = magi > 0 ? fmt(magi) : '—';
+    document.getElementById('b-excess').textContent = magi > 0 ? fmt(excess) : '—';
+    document.getElementById('b-nii').textContent = nii > 0 ? fmt(nii) : '—';
+    document.getElementById('threshold-badge').textContent = THRESHOLD_LABELS[status];
+
+    const resultCard   = document.getElementById('result-card');
+    const resultAmount = document.getElementById('result-amount');
+    const resultNote   = document.getElementById('result-note');
+    const bBase        = document.getElementById('b-base');
+    const bNiit        = document.getElementById('b-niit');
+
+    if (magi <= threshold) {
+      resultCard.className = 'result-card no-tax';
+      resultAmount.className = 'result-amount';
+      resultAmount.textContent = '$0.00';
+      resultNote.textContent = magi > 0
+        ? 'MAGI does not exceed the ' + fmt(threshold) + ' threshold — no NIIT applies.'
+        : 'Enter your MAGI and NII above to calculate.';
+      bBase.innerHTML = '<span class="muted">N/A — below threshold</span>';
+      bNiit.textContent = '$0.00';
+      return;
+    }
+
+    if (nii === 0) {
+      resultCard.className = 'result-card no-tax';
+      resultAmount.className = 'result-amount';
+      resultAmount.textContent = '$0.00';
+      resultNote.textContent = 'MAGI exceeds the threshold, but no net investment income entered.';
+      bBase.innerHTML = fmt(0);
+      bNiit.textContent = '$0.00';
+      return;
+    }
+
+    const base = Math.min(nii, excess);
+    const niit = base * 0.038;
+    const niiIsLesser = nii <= excess;
+
+    const lesserTag = '<span class="lesser-tag">lesser</span>';
+    if (niiIsLesser) {
+      bBase.innerHTML = fmt(nii) + lesserTag + ' (NII)';
+    } else {
+      bBase.innerHTML = fmt(excess) + lesserTag + ' (MAGI excess)';
+    }
+
+    bNiit.textContent = fmtFull(niit);
+    resultCard.className = niit > 0 ? 'result-card has-tax' : 'result-card no-tax';
+    resultAmount.className = niit > 0 ? 'result-amount has-tax' : 'result-amount';
+    resultAmount.textContent = fmtFull(niit);
+    resultNote.textContent = '3.8% × ' + fmt(base) + ' (' + (niiIsLesser ? 'NII' : 'MAGI excess') + ' is the lesser amount)';
+  }
+
+  calc();
+</script>
+</body>
+</html>
