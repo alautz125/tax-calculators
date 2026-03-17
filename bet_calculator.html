@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bet Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f12;
+    --surface: #15181e;
+    --surface2: #1c2029;
+    --surface3: #22262f;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f2f5;
+    --muted: #7a8494;
+    --accent: #e8c547;
+    --accent-dim: rgba(232,197,71,0.12);
+    --green: #3dd68c;
+    --green-dim: rgba(61,214,140,0.12);
+    --red: #f26c6c;
+    --red-dim: rgba(242,108,108,0.12);
+    --blue: #5b9cf6;
+    --blue-dim: rgba(91,156,246,0.12);
+    --orange: #f5924e;
+    --orange-dim: rgba(245,146,78,0.12);
+  }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Main tab bar */
+  .tab-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1rem 0;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s;
+  }
+  .tab-btn:first-child { border-right: 1px solid var(--border); }
+  .tab-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+  }
+  .tab-btn.active { color: var(--text); }
+  .tab-btn.active::after { transform: scaleX(1); }
+
+  .panel { display: none; padding: 1.5rem 1.75rem; }
+  .panel.active { display: block; }
+
+  /* Fields */
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .field label {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .hint { font-size: 11px; color: var(--muted); min-height: 15px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .input-wrap { position: relative; }
+  .pfx {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; color: var(--muted); pointer-events: none;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 600; z-index: 1;
+  }
+  input[type="number"] {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 600;
+    padding: 10px 12px 10px 26px; outline: none;
+    transition: border-color 0.15s; -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input:focus { border-color: var(--accent); }
+
+  .sign-wrap {
+    display: flex; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; transition: border-color 0.15s;
+  }
+  .sign-wrap:focus-within { border-color: var(--accent); }
+  .sign-btn {
+    width: 46px; flex-shrink: 0; background: transparent; border: none;
+    border-right: 1px solid var(--border);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700;
+    cursor: pointer; transition: background 0.15s;
+    display: flex; align-items: center; justify-content: center; user-select: none;
+  }
+  .sign-btn:hover { background: rgba(255,255,255,0.04); }
+  .sign-btn.neg { color: var(--blue); }
+  .sign-btn.pos { color: var(--accent); }
+  .sign-num {
+    flex: 1; background: transparent; border: none; color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 600;
+    padding: 10px 12px; outline: none; -moz-appearance: textfield;
+  }
+  .sign-num::-webkit-inner-spin-button,
+  .sign-num::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .vig-wrap { position: relative; }
+  .vig-pfx {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-size: 17px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    color: var(--muted); pointer-events: none; z-index: 1;
+  }
+  .vig-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 600;
+    padding: 10px 12px 10px 22px; outline: none;
+    transition: border-color 0.15s; -moz-appearance: textfield;
+  }
+  .vig-input:focus { border-color: var(--accent); }
+  .vig-input::-webkit-inner-spin-button,
+  .vig-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  hr.div { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+  /* Result tiles */
+  .results-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; margin-bottom: 1.25rem;
+  }
+  .tile {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 8px; text-align: center;
+  }
+  .tile-lbl {
+    font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; margin-bottom: 5px;
+  }
+  .tile-val { font-family: 'Barlow Condensed', sans-serif; font-size: 21px; font-weight: 700; }
+  .tile-val.pos { color: var(--green); }
+  .tile-val.neg { color: var(--red); }
+  .tile-val.neu { color: var(--text); }
+
+  /* Prob bar */
+  .bar-section { margin-bottom: 1.25rem; }
+  .bar-header {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+  }
+  .bar-track {
+    height: 6px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease, background 0.3s ease; }
+  .bar-footer {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted); margin-top: 5px;
+  }
+
+  /* Stats */
+  .stats { display: flex; flex-direction: column; gap: 7px; margin-bottom: 1.25rem; }
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 12px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .stat-name { font-size: 13px; color: var(--muted); }
+  .stat-val { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 600; color: var(--text); }
+  .stat-val.pos { color: var(--green); }
+  .stat-val.neg { color: var(--red); }
+
+  /* EV footer */
+  .ev-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 1rem; border-top: 1px solid var(--border);
+  }
+  .ev-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
+  .ev-amount { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; }
+  .ev-amount.pos { color: var(--green); }
+  .ev-amount.neg { color: var(--red); }
+  .ev-amount.neu { color: var(--muted); }
+  .ev-badge {
+    padding: 5px 13px; border-radius: 20px;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.03em;
+  }
+  .ev-badge.pos { background: var(--green-dim); color: var(--green); }
+  .ev-badge.neg { background: var(--red-dim); color: var(--red); }
+  .ev-badge.neu { background: var(--surface2); color: var(--muted); }
+
+  /* ── Tax toggle section ── */
+  .tax-section {
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+  }
+  .tax-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  .tax-header-left {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .tax-title {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .tax-subtitle {
+    font-size: 11px; color: var(--muted);
+  }
+
+  /* Toggle switch */
+  .toggle-switch {
+    position: relative; width: 40px; height: 22px; flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 11px; cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .toggle-track::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--muted); transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--accent-dim); border-color: var(--accent); }
+  .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); background: var(--accent); }
+
+  /* Tax rate pill buttons */
+  .tax-rate-bar {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px; margin-bottom: 14px;
+  }
+  .tax-rate-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--muted);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700;
+    padding: 8px 0; cursor: pointer; transition: all 0.15s; text-align: center;
+    letter-spacing: 0.03em;
+  }
+  .tax-rate-btn:hover { border-color: var(--border-strong); color: var(--text); }
+  .tax-rate-btn.active {
+    background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
+  }
+
+  /* Tax impact table */
+  .tax-table {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .tax-row {
+    display: grid; grid-template-columns: 1.2fr 1fr 1fr 0.9fr 0.9fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .tax-row:last-child { border-bottom: none; }
+  .tax-cell {
+    padding: 9px 10px; font-size: 12px;
+  }
+  .tax-cell.head {
+    font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; background: var(--surface3);
+  }
+  .tax-cell.label { color: var(--muted); font-size: 12px; }
+  .tax-cell.base { color: var(--text); font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; }
+  .tax-cell.after { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; }
+  .tax-cell.delta {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--red);
+  }
+  .tax-cell.delta.pos { color: var(--green); }
+
+  .tax-cost-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; margin-top: 8px;
+    background: var(--orange-dim); border: 1px solid rgba(245,146,78,0.25);
+    border-radius: 8px;
+  }
+  .tax-cost-label { font-size: 12px; color: var(--orange); }
+  .tax-cost-val {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 15px;
+    font-weight: 700; color: var(--orange);
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-spread" onclick="switchTab('spread')">Point Spread</button>
+    <button class="tab-btn" id="tab-ml" onclick="switchTab('ml')">Moneyline</button>
+  </div>
+
+  <!-- ── SPREAD PANEL ── -->
+  <div class="panel active" id="panel-spread">
+    <div class="row2">
+      <div class="field">
+        <label>Wager</label>
+        <div class="input-wrap">
+          <span class="pfx">$</span>
+          <input type="number" id="s-wager" value="100" min="1" step="1" oninput="calcSpread()" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Point Spread</label>
+        <div class="sign-wrap">
+          <button class="sign-btn neg" id="s-signBtn" onclick="toggleSpreadSign()">−</button>
+          <input class="sign-num" type="number" id="s-spreadVal" value="3.5" min="0" step="0.5" oninput="calcSpread()" />
+        </div>
+        <div class="hint" id="s-spreadHint">Laying 3.5 (favorite)</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Vig (line odds)</label>
+      <div class="vig-wrap">
+        <span class="vig-pfx">−</span>
+        <input class="vig-input" type="number" id="s-vigVal" value="110" min="100" step="1" oninput="calcSpread()" />
+      </div>
+      <div class="hint" id="s-vigHint">4.55% vig — standard −110 line</div>
+    </div>
+
+    <hr class="div" />
+
+    <div class="results-grid">
+      <div class="tile"><div class="tile-lbl">Profit if Win</div><div class="tile-val pos" id="s-profit">—</div></div>
+      <div class="tile"><div class="tile-lbl">Loss if Lose</div><div class="tile-val neg" id="s-loss">—</div></div>
+      <div class="tile"><div class="tile-lbl">Total Payout</div><div class="tile-val neu" id="s-payout">—</div></div>
+    </div>
+
+    <div class="bar-section">
+      <div class="bar-header"><span>Lose</span><span id="s-barLabel">Implied win probability</span><span>Win</span></div>
+      <div class="bar-track"><div class="bar-fill" id="s-bar" style="width:50%;background:var(--accent);"></div></div>
+      <div class="bar-footer"><span id="s-losePct">—</span><span id="s-winPct">—</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-row"><span class="stat-name">Implied win probability (from vig)</span><span class="stat-val" id="s-implied">—</span></div>
+      <div class="stat-row"><span class="stat-name">Your edge vs. fair 50/50</span><span class="stat-val" id="s-edge">—</span></div>
+    </div>
+
+    <div class="ev-row">
+      <div><div class="ev-label">Expected value</div><div class="ev-amount neu" id="s-ev">—</div></div>
+      <div class="ev-badge neu" id="s-evBadge">—</div>
+    </div>
+
+    <!-- Tax section -->
+    <div class="tax-section">
+      <div class="tax-header">
+        <div class="tax-header-left">
+          <span class="tax-title">Federal excise tax</span>
+          <span class="tax-subtitle" id="s-taxSubtitle">Show impact on wager</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="s-taxToggle" onchange="calcSpread()" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div id="s-taxBody" style="display:none;">
+        <div class="tax-rate-bar">
+          <button class="tax-rate-btn active" data-panel="s" data-rate="0.01" onclick="setTaxRate('s', this)">1%</button>
+          <button class="tax-rate-btn" data-panel="s" data-rate="0.05" onclick="setTaxRate('s', this)">5%</button>
+          <button class="tax-rate-btn" data-panel="s" data-rate="0.10" onclick="setTaxRate('s', this)">10%</button>
+        </div>
+        <div class="tax-table">
+          <div class="tax-row">
+            <div class="tax-cell head">Metric</div>
+            <div class="tax-cell head">No tax</div>
+            <div class="tax-cell head">With tax</div>
+            <div class="tax-cell head">$ chg</div>
+            <div class="tax-cell head">% chg</div>
+          </div>
+          <div class="tax-row">
+            <div class="tax-cell label">Profit if win</div>
+            <div class="tax-cell base" id="s-t-profitBase">—</div>
+            <div class="tax-cell after" id="s-t-profitAfter">—</div>
+            <div class="tax-cell delta" id="s-t-profitDelta">—</div>
+            <div class="tax-cell delta" id="s-t-profitPct">—</div>
+          </div>
+          <div class="tax-row">
+            <div class="tax-cell label">Loss if lose</div>
+            <div class="tax-cell base" id="s-t-lossBase">—</div>
+            <div class="tax-cell after" id="s-t-lossAfter">—</div>
+            <div class="tax-cell delta" id="s-t-lossDelta">—</div>
+            <div class="tax-cell delta" id="s-t-lossPct">—</div>
+          </div>
+          <div class="tax-row">
+            <div class="tax-cell label">Net payout</div>
+            <div class="tax-cell base" id="s-t-payoutBase">—</div>
+            <div class="tax-cell after" id="s-t-payoutAfter">—</div>
+            <div class="tax-cell delta" id="s-t-payoutDelta">—</div>
+            <div class="tax-cell delta" id="s-t-payoutPct">—</div>
+          </div>
+
+          <div class="tax-row">
+            <div class="tax-cell label">Break-even %</div>
+            <div class="tax-cell base" id="s-t-beBase">—</div>
+            <div class="tax-cell after" id="s-t-beAfter">—</div>
+            <div class="tax-cell delta" id="s-t-beDelta">—</div>
+            <div class="tax-cell delta" id="s-t-bePct">—</div>
+          </div>
+        </div>
+        <div class="tax-cost-row">
+          <span class="tax-cost-label" id="s-taxCostLabel">Tax cost per bet</span>
+          <span class="tax-cost-val" id="s-taxCostVal">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MONEYLINE PANEL ── -->
+  <div class="panel" id="panel-ml">
+    <div class="row2">
+      <div class="field">
+        <label>Wager</label>
+        <div class="input-wrap">
+          <span class="pfx">$</span>
+          <input type="number" id="m-wager" value="100" min="1" step="1" oninput="calcML()" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Moneyline</label>
+        <div class="sign-wrap">
+          <button class="sign-btn neg" id="m-signBtn" onclick="toggleMLSign()">−</button>
+          <input class="sign-num" type="number" id="m-mlVal" value="150" min="100" step="1" oninput="calcML()" />
+        </div>
+        <div class="hint" id="m-mlHint">Favorite (−150)</div>
+      </div>
+    </div>
+
+    <hr class="div" />
+
+    <div class="results-grid">
+      <div class="tile"><div class="tile-lbl">Profit if Win</div><div class="tile-val pos" id="m-profit">—</div></div>
+      <div class="tile"><div class="tile-lbl">Loss if Lose</div><div class="tile-val neg" id="m-loss">—</div></div>
+      <div class="tile"><div class="tile-lbl">Total Payout</div><div class="tile-val neu" id="m-payout">—</div></div>
+    </div>
+
+    <div class="bar-section">
+      <div class="bar-header"><span>Lose</span><span id="m-barLabel">Implied win probability</span><span>Win</span></div>
+      <div class="bar-track"><div class="bar-fill" id="m-bar" style="width:50%;background:var(--accent);"></div></div>
+      <div class="bar-footer"><span id="m-losePct">—</span><span id="m-winPct">—</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-row"><span class="stat-name">Implied win probability</span><span class="stat-val" id="m-implied">—</span></div>
+      <div class="stat-row"><span class="stat-name">Return on investment (if win)</span><span class="stat-val" id="m-roi">—</span></div>
+    </div>
+
+    <!-- Tax section -->
+    <div class="tax-section">
+      <div class="tax-header">
+        <div class="tax-header-left">
+          <span class="tax-title">Federal excise tax</span>
+          <span class="tax-subtitle" id="m-taxSubtitle">Show impact on wager</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="m-taxToggle" onchange="calcML()" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div id="m-taxBody" style="display:none;">
+        <div class="tax-rate-bar">
+          <button class="tax-rate-btn active" data-panel="m" data-rate="0.01" onclick="setTaxRate('m', this)">1%</button>
+          <button class="tax-rate-btn" data-panel="m" data-rate="0.05" onclick="setTaxRate('m', this)">5%</button>
+          <button class="tax-rate-btn" data-panel="m" data-rate="0.10" onclick="setTaxRate('m', this)">10%</button>
+        </div>
+        <div class="tax-table">
+          <div class="tax-row">
+            <div class="tax-cell head">Metric</div>
+            <div class="tax-cell head">No tax</div>
+            <div class="tax-cell head">With tax</div>
+            <div class="tax-cell head">$ chg</div>
+            <div class="tax-cell head">% chg</div>
+          </div>
+          <div class="tax-row">
+            <div class="tax-cell label">Profit if win</div>
+            <div class="tax-cell base" id="m-t-profitBase">—</div>
+            <div class="tax-cell after" id="m-t-profitAfter">—</div>
+            <div class="tax-cell delta" id="m-t-profitDelta">—</div>
+            <div class="tax-cell delta" id="m-t-profitPct">—</div>
+          </div>
+          <div class="tax-row">
+            <div class="tax-cell label">Loss if lose</div>
+            <div class="tax-cell base" id="m-t-lossBase">—</div>
+            <div class="tax-cell after" id="m-t-lossAfter">—</div>
+            <div class="tax-cell delta" id="m-t-lossDelta">—</div>
+            <div class="tax-cell delta" id="m-t-lossPct">—</div>
+          </div>
+          <div class="tax-row">
+            <div class="tax-cell label">Net payout</div>
+            <div class="tax-cell base" id="m-t-payoutBase">—</div>
+            <div class="tax-cell after" id="m-t-payoutAfter">—</div>
+            <div class="tax-cell delta" id="m-t-payoutDelta">—</div>
+            <div class="tax-cell delta" id="m-t-payoutPct">—</div>
+          </div>
+
+          <div class="tax-row">
+            <div class="tax-cell label">Break-even %</div>
+            <div class="tax-cell base" id="m-t-beBase">—</div>
+            <div class="tax-cell after" id="m-t-beAfter">—</div>
+            <div class="tax-cell delta" id="m-t-beDelta">—</div>
+            <div class="tax-cell delta" id="m-t-bePct">—</div>
+          </div>
+        </div>
+        <div class="tax-cost-row">
+          <span class="tax-cost-label" id="m-taxCostLabel">Tax cost per bet</span>
+          <span class="tax-cost-val" id="m-taxCostVal">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  // ── State ──
+  let sIsFav = true, mIsFav = true;
+  const sTaxRate = { val: 0.01 }, mTaxRate = { val: 0.01 };
+
+  // ── Tab switching ──
+  function switchTab(t) {
+    ['spread','ml'].forEach(id => {
+      document.getElementById('tab-' + id).classList.toggle('active', id === t);
+      document.getElementById('panel-' + id).classList.toggle('active', id === t);
+    });
+  }
+
+  // ── Sign toggles ──
+  function toggleSpreadSign() {
+    sIsFav = !sIsFav;
+    const btn = document.getElementById('s-signBtn');
+    btn.textContent = sIsFav ? '−' : '+';
+    btn.className = 'sign-btn ' + (sIsFav ? 'neg' : 'pos');
+    calcSpread();
+  }
+  function toggleMLSign() {
+    mIsFav = !mIsFav;
+    const btn = document.getElementById('m-signBtn');
+    btn.textContent = mIsFav ? '−' : '+';
+    btn.className = 'sign-btn ' + (mIsFav ? 'neg' : 'pos');
+    calcML();
+  }
+
+  // ── Tax rate selection ──
+  function setTaxRate(panel, el) {
+    document.querySelectorAll(`[data-panel="${panel}"]`).forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    if (panel === 's') { sTaxRate.val = parseFloat(el.dataset.rate); calcSpread(); }
+    else               { mTaxRate.val = parseFloat(el.dataset.rate); calcML(); }
+  }
+
+  // ── Helpers ──
+  const $= id => document.getElementById(id);
+  function fmtM(n) {
+    const sign = n < 0 ? '−' : (n >= 0.005 ? '+' : '');
+    return sign + '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+  function fmtMAbs(n) {
+    return '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+  function fmtPct(n, d) { return (n * 100).toFixed(d === undefined ? 1 : d) + '%'; }
+
+  function setEV(evElId, badgeId, ev) {
+    const el = $(evElId);
+    el.textContent = fmtM(ev) + ' per bet';
+    el.className = 'ev-amount ' + (ev > 0.01 ? 'pos' : ev < -0.01 ? 'neg' : 'neu');
+    const b = $(badgeId);
+    if (ev > 0.01)       { b.textContent = '+ Positive EV'; b.className = 'ev-badge pos'; }
+    else if (ev < -0.01) { b.textContent = '− Negative EV'; b.className = 'ev-badge neg'; }
+    else                 { b.textContent = '≈ Breakeven';   b.className = 'ev-badge neu'; }
+  }
+
+  function setBar(barId, labelId, losePctId, winPctId, prob, lbl) {
+    const pct = Math.max(2, Math.min(98, prob * 100));
+    $(barId).style.width = pct + '%';
+    $(barId).style.background = prob >= 0.5 ? 'var(--blue)' : 'var(--accent)';
+    $(labelId).textContent = lbl;
+    $(winPctId).textContent = fmtPct(prob, 1);
+    $(losePctId).textContent = fmtPct(1 - prob, 1);
+  }
+
+  // Fill the tax comparison table for a given panel
+  function fillTaxTable(p, base, taxRate, trueWinProb) {
+    const taxCost = base.wager * taxRate;
+    const tProfit = base.profit - taxCost;
+    const tLoss   = base.wager + taxCost;
+    const tPayout = base.payout - taxCost;
+    const tBE     = tLoss / (tProfit + tLoss);
+
+    function set(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    }
+    function setDelta(id, dollarVal, baseVal) {
+      const el = document.getElementById(id + 'Delta');
+      if (el) {
+        el.textContent = fmtM(dollarVal);
+        el.className = 'tax-cell delta' + (dollarVal > 0.005 ? ' pos' : '');
+      }
+      const pctEl = document.getElementById(id + 'Pct');
+      if (pctEl && Math.abs(baseVal) > 0.0001) {
+        const pct = (dollarVal / Math.abs(baseVal)) * 100;
+        pctEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+        pctEl.className = 'tax-cell delta' + (pct > 0.05 ? ' pos' : '');
+      }
+    }
+
+    set(`${p}-t-profitBase`,  fmtM(base.profit));
+    set(`${p}-t-lossBase`,    '−' + fmtMAbs(base.wager));
+    set(`${p}-t-payoutBase`,  fmtMAbs(base.payout));
+    set(`${p}-t-beBase`,      fmtPct(base.be, 2));
+
+    set(`${p}-t-profitAfter`, fmtM(tProfit));
+    set(`${p}-t-lossAfter`,   '−' + fmtMAbs(tLoss));
+    set(`${p}-t-payoutAfter`, fmtMAbs(tPayout));
+    set(`${p}-t-beAfter`,     fmtPct(tBE, 2));
+
+    setDelta(`${p}-t-profit`, tProfit - base.profit,  base.profit);
+    setDelta(`${p}-t-loss`,   -(tLoss - base.wager),  base.wager);
+    setDelta(`${p}-t-payout`, tPayout - base.payout,  base.payout);
+
+    // Break-even % change shown as pp change (absolute) in delta col, % change in pct col
+    const beDelta = tBE - base.be;
+    const beDeltaEl = document.getElementById(`${p}-t-beDelta`);
+    if (beDeltaEl) {
+      beDeltaEl.textContent = (beDelta >= 0 ? '+' : '') + fmtPct(beDelta, 2);
+      beDeltaEl.className = 'tax-cell delta';
+    }
+    const bePctEl = document.getElementById(`${p}-t-bePct`);
+    if (bePctEl && base.be > 0) {
+      const bePctChg = (beDelta / base.be) * 100;
+      bePctEl.textContent = (bePctChg >= 0 ? '+' : '') + bePctChg.toFixed(1) + '%';
+      bePctEl.className = 'tax-cell delta';
+    }
+
+    set(`${p}-taxCostVal`,  fmtMAbs(taxCost) + ' (' + fmtPct(taxRate, 0) + ' × ' + fmtMAbs(base.wager) + ')');
+    set(`${p}-taxSubtitle`, fmtPct(taxRate, 0) + ' excise tax on wager');
+  }
+
+  // ── Spread calc ──
+  function calcSpread() {
+    const wager = parseFloat($('s-wager').value);
+    const spreadNum = parseFloat($('s-spreadVal').value);
+    const vigLine = parseFloat($('s-vigVal').value);
+    const taxOn = $('s-taxToggle').checked;
+
+    if (!isNaN(spreadNum)) {
+      if (spreadNum === 0) $('s-spreadHint').textContent = "Pick'em";
+      else if (sIsFav)     $('s-spreadHint').textContent = `Laying ${spreadNum} (favorite)`;
+      else                 $('s-spreadHint').textContent = `Getting +${spreadNum} (underdog)`;
+    }
+
+    if (!isNaN(vigLine) && vigLine >= 100) {
+      if (vigLine === 100) $('s-vigHint').textContent = 'No vig — fair odds';
+      else {
+        const impl = vigLine / (vigLine + 100);
+        const vigPct = ((impl * 2 - 1) * 100).toFixed(2);
+        $('s-vigHint').textContent = `${vigPct}% vig — −${Math.round(vigLine)} line`;
+      }
+    }
+
+    $('s-taxBody').style.display = taxOn ? '' : 'none';
+    if (!taxOn) $('s-taxSubtitle').textContent = 'Show impact on wager';
+
+    if (isNaN(wager) || wager <= 0 || isNaN(vigLine) || vigLine < 100 || isNaN(spreadNum) || spreadNum < 0) return;
+
+    const dec = (100 / vigLine) + 1;
+    const profit = wager * (dec - 1);
+    const payout = wager * dec;
+    const impliedProb = vigLine / (vigLine + 100);
+    const edge = 0.5 - impliedProb;
+    const ev = 0.5 * profit - 0.5 * wager;
+
+    $('s-profit').textContent = '+' + fmtMAbs(profit);
+    $('s-loss').textContent   = '−' + fmtMAbs(wager);
+    $('s-payout').textContent = fmtMAbs(payout);
+
+    setBar('s-bar','s-barLabel','s-losePct','s-winPct', impliedProb, fmtPct(impliedProb,1) + ' implied (vig-adjusted)');
+
+    $('s-implied').textContent = fmtPct(impliedProb, 2);
+
+    const edgeEl = $('s-edge');
+    edgeEl.textContent = (edge >= 0 ? '+' : '') + fmtPct(edge, 2);
+    edgeEl.className = 'stat-val ' + (edge > 0.001 ? 'pos' : edge < -0.001 ? 'neg' : '');
+
+    setEV('s-ev', 's-evBadge', ev);
+
+    if (taxOn) {
+      fillTaxTable('s',
+        { wager, profit, payout, ev, be: impliedProb },
+        sTaxRate.val, 0.5
+      );
+    }
+  }
+
+  // ── Moneyline calc ──
+  function calcML() {
+    const wager = parseFloat($('m-wager').value);
+    const mlNum  = parseFloat($('m-mlVal').value);
+    const taxOn  = $('m-taxToggle').checked;
+
+    if (!isNaN(mlNum) && mlNum >= 100) {
+      $('m-mlHint').textContent = mIsFav
+        ? `Favorite (−${Math.round(mlNum)})`
+        : `Underdog (+${Math.round(mlNum)})`;
+    }
+
+    $('m-taxBody').style.display = taxOn ? '' : 'none';
+    if (!taxOn) $('m-taxSubtitle').textContent = 'Show impact on wager';
+
+    if (isNaN(wager) || wager <= 0 || isNaN(mlNum) || mlNum < 100) return;
+
+    const dec = mIsFav ? (100 / mlNum) + 1 : (mlNum / 100) + 1;
+    const profit = wager * (dec - 1);
+    const payout = wager * dec;
+    const impliedProb = mIsFav ? mlNum / (mlNum + 100) : 100 / (mlNum + 100);
+    const roi = (profit / wager) * 100;
+
+    $('m-profit').textContent = '+' + fmtMAbs(profit);
+    $('m-loss').textContent   = '−' + fmtMAbs(wager);
+    $('m-payout').textContent = fmtMAbs(payout);
+
+    setBar('m-bar','m-barLabel','m-losePct','m-winPct', impliedProb, fmtPct(impliedProb,1) + ' implied win probability');
+
+    $('m-implied').textContent = fmtPct(impliedProb, 2);
+    $('m-roi').textContent     = '+' + roi.toFixed(1) + '%';
+
+    if (taxOn) {
+      // For ML, EV uses implied prob as true prob baseline (no external fair line)
+      const ev = impliedProb * profit - (1 - impliedProb) * wager;
+      fillTaxTable('m',
+        { wager, profit, payout, ev, be: impliedProb },
+        mTaxRate.val, impliedProb
+      );
+    }
+  }
+
+  calcSpread();
+  calcML();
+</script>
+</body>
+</html>
