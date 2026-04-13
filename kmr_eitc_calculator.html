@@ -25,7 +25,7 @@ h2{font-size:15px;font-weight:700;color:#1e3a5f;margin-bottom:18px}
 .btn-group{display:flex;gap:8px;flex-wrap:wrap}
 .btn-st{padding:8px 14px;border-radius:8px;cursor:pointer;border:2px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;font-weight:400;font-family:inherit}
 .btn-st.active{border-color:#1d4ed8;background:#eff6ff;color:#1d4ed8;font-weight:700}
-.ctr-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ctr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 .ctr-row{display:flex;align-items:center;gap:12px;margin-top:8px}
 .ctr-val{font-size:28px;font-weight:800;color:#1e3a5f;min-width:24px;text-align:center}
 .btn-ctr{width:36px;height:36px;border-radius:8px;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #1d4ed8;background:#eff6ff;color:#1d4ed8;font-family:inherit;flex-shrink:0}
@@ -110,11 +110,19 @@ svg.chart{width:100%;height:auto;display:block}
             </div>
           </div>
           <div>
-            <label class="field-label">Children Age 4–17</label>
+            <label class="field-label">Children Age 4–16</label>
             <div class="ctr-row">
               <button class="btn-ctr" id="od" disabled>−</button>
               <span class="ctr-val" id="ov">0</span>
               <button class="btn-ctr" id="oi">+</button>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Children Age 17</label>
+            <div class="ctr-row">
+              <button class="btn-ctr" id="s7d" disabled>−</button>
+              <span class="ctr-val" id="s7v">0</span>
+              <button class="btn-ctr" id="s7i">+</button>
             </div>
           </div>
         </div>
@@ -199,11 +207,15 @@ svg.chart{width:100%;height:auto;display:block}
         <svg id="c3" class="chart" viewBox="0 0 480 210"></svg>
         <div class="chart-note">Change in net tax per additional $1,000 of income</div>
       </div>
+      <div class="chart-box" style="grid-column:1/-1">
+        <h3>EITC Amount: Current Law vs. McDonald Rivet Proposal</h3>
+        <svg id="c4" class="chart" viewBox="0 0 980 210"></svg>
+      </div>
     </div>
   </div>
 
   <div class="methodology">
-    <strong>Methodology Notes:</strong> Assumes the standard deduction in all cases. The Child Tax Credit (CTC) is applied for eligible children (income above $2,500; MAGI below phase-out thresholds). The EITC for childless workers is subject to additional age restrictions (ages 25–64) not captured here. MAGI is treated as earned income for credit phase-in calculations. All figures reflect 2026 federal parameters only; state and local taxes are excluded. FPL percentages reflect the 2026 HHS Poverty Guidelines for the 48 contiguous states (effective January 13, 2026); household size equals the number of adults (1 for Single/Head of Household, 2 for Married Filing Jointly) plus total qualifying children. "Effective after-tax income" equals MAGI minus net federal tax liability (or plus net refund). This tool is for illustrative purposes only and does not constitute tax advice.
+    <strong>Methodology Notes:</strong> Assumes the standard deduction in all cases. The Child Tax Credit (CTC) applies only to children under age 17; children age 17 are excluded from both the non-refundable and refundable (ACTC) CTC calculations. All qualifying children (including those age 17) count toward the EITC child count. The EITC for childless workers is subject to additional age restrictions (ages 25–64) not captured here. MAGI is treated as earned income for credit phase-in calculations. All figures reflect 2026 federal parameters only; state and local taxes are excluded. FPL percentages reflect the 2026 HHS Poverty Guidelines for the 48 contiguous states (effective January 13, 2026); household size equals the number of adults (1 for Single/Head of Household, 2 for Married Filing Jointly) plus total qualifying children. "Effective after-tax income" equals MAGI minus net federal tax liability (or plus net refund). This tool is for illustrative purposes only and does not constitute tax advice.
   </div>
 </div>
 
@@ -211,7 +223,7 @@ svg.chart{width:100%;height:auto;display:block}
 'use strict';
 
 // ── STATE ────────────────────────────────────────────────
-var magi = 50000, status = 'single', young = 1, older = 0;
+var magi = 50000, status = 'single', young = 1, older = 0, older17 = 0;
 
 // ── TAX PARAMETERS ───────────────────────────────────────
 var BRACKETS = {
@@ -261,18 +273,19 @@ function eitc(m, mfj, p) {
   return Math.max(0, p.mx - (m - pd) * p.po);
 }
 
-function calcTax(m, st, y, o, prop) {
-  var tot = y + o, mfj = st === 'mfj';
+function calcTax(m, st, y, o, o17, prop) {
+  var tot = y + o + o17, mfj = st === 'mfj';  // all children count for EITC
+  var ctcKids = y + o;                          // age-17 children are CTC-ineligible
   var ti = Math.max(0, m - STD[st]);
   var it = incomeTax(ti, st);
-  var key = y + '_' + o;
+  var key = y + '_' + (o + o17);               // proposal keyed by young vs all older
   var ep = prop ? (EPR[key] || ECL[Math.min(tot,3)]) : ECL[Math.min(tot,3)];
   var ei = eitc(m, mfj, ep);
   var cs = mfj ? 400000 : 200000;
-  var cf = 2200 * tot;
-  var cp = tot > 0 ? Math.max(0, cf - Math.max(0, m - cs) * .05) : 0;
+  var cf = 2200 * ctcKids;
+  var cp = ctcKids > 0 ? Math.max(0, cf - Math.max(0, m - cs) * .05) : 0;
   var nr = Math.min(it, cp);
-  var ac = tot > 0 ? Math.min(cp - nr, Math.min(1700*tot, Math.max(0,m-2500)*.15)) : 0;
+  var ac = ctcKids > 0 ? Math.min(cp - nr, Math.min(1700*ctcKids, Math.max(0,m-2500)*.15)) : 0;
   var ct = nr + ac;
   return {it:it, ei:ei, ct:ct, net:it - ct - ei};
 }
@@ -324,9 +337,10 @@ function ptPath(pts) {
   return d;
 }
 
-function drawChart(id, rows, series, pct, zero) {
+function drawChart(id, rows, series, pct, zero, cw) {
   var svg = document.getElementById(id);
   svg.innerHTML = '';
+  var pw = (cw || CW) - ML - MR;
 
   // y range
   var lo=1e18, hi=-1e18;
@@ -341,7 +355,7 @@ function drawChart(id, rows, series, pct, zero) {
   var pad = Math.max(Math.abs(hi-lo)*.1, 1);
   lo-=pad; hi+=pad;
 
-  function xp(inc) { return ML + (inc/200000)*PW; }
+  function xp(inc) { return ML + (inc/200000)*pw; }
   function yp(v)   { return MT + PH - ((v-lo)/(hi-lo))*PH; }
   var y0 = yp(0);
 
@@ -349,7 +363,7 @@ function drawChart(id, rows, series, pct, zero) {
   var ytk = niceTicks(lo, hi);
   for (var i=0; i<ytk.length; i++) {
     var yy = yp(ytk[i]);
-    svg.appendChild(svgEl('line',{x1:ML,x2:ML+PW,y1:yy.toFixed(1),y2:yy.toFixed(1),stroke:'#f0f0f0','stroke-width':'1'}));
+    svg.appendChild(svgEl('line',{x1:ML,x2:ML+pw,y1:yy.toFixed(1),y2:yy.toFixed(1),stroke:'#f0f0f0','stroke-width':'1'}));
     var lab = pct ? fP(ytk[i]) : fK(ytk[i]);
     var t = svgEl('text',{x:ML-5,y:(yy+3.5).toFixed(1),'text-anchor':'end','font-size':'10','fill':'#6b7280','font-family':'inherit'});
     t.textContent = lab;
@@ -357,7 +371,7 @@ function drawChart(id, rows, series, pct, zero) {
   }
 
   // Zero line
-  if (zero) svg.appendChild(svgEl('line',{x1:ML,x2:ML+PW,y1:y0.toFixed(1),y2:y0.toFixed(1),stroke:'#374151','stroke-width':'1.5'}));
+  if (zero) svg.appendChild(svgEl('line',{x1:ML,x2:ML+pw,y1:y0.toFixed(1),y2:y0.toFixed(1),stroke:'#374151','stroke-width':'1.5'}));
 
   // X ticks
   var xtk=[[0,'$0'],[50000,'$50k'],[100000,'$100k'],[150000,'$150k'],[200000,'$200k']];
@@ -370,7 +384,7 @@ function drawChart(id, rows, series, pct, zero) {
 
   // Axes
   svg.appendChild(svgEl('line',{x1:ML,x2:ML,y1:MT,y2:MT+PH,stroke:'#e5e7eb','stroke-width':'1'}));
-  svg.appendChild(svgEl('line',{x1:ML,x2:ML+PW,y1:MT+PH,y2:MT+PH,stroke:'#e5e7eb','stroke-width':'1'}));
+  svg.appendChild(svgEl('line',{x1:ML,x2:ML+pw,y1:MT+PH,y2:MT+PH,stroke:'#e5e7eb','stroke-width':'1'}));
 
   // Series
   for (var si=0; si<series.length; si++) {
@@ -411,15 +425,15 @@ function drawChart(id, rows, series, pct, zero) {
   // Hover vline + overlay
   var vl = svgEl('line',{x1:ML,x2:ML,y1:MT,y2:MT+PH,stroke:'#9ca3af','stroke-width':'1','stroke-dasharray':'4,2',visibility:'hidden'});
   svg.appendChild(vl);
-  var ov = svgEl('rect',{x:ML,y:MT,width:PW,height:PH,fill:'transparent',style:'cursor:crosshair'});
+  var ov = svgEl('rect',{x:ML,y:MT,width:pw,height:PH,fill:'transparent',style:'cursor:crosshair'});
   svg.appendChild(ov);
 
   var tip=document.getElementById('tip'), tit=document.getElementById('tip-t'), tli=document.getElementById('tip-l');
 
   ov.addEventListener('mousemove', function(e) {
     var r = svg.getBoundingClientRect();
-    var fx = (e.clientX - r.left) / r.width * CW;
-    var idx = Math.round(Math.max(0,Math.min(PW,fx-ML))/PW*200);
+    var fx = (e.clientX - r.left) / r.width * (cw || CW);
+    var idx = Math.round(Math.max(0,Math.min(pw,fx-ML))/pw*200);
     var row = rows[idx]; if(!row) return;
     vl.setAttribute('x1',xp(row.inc).toFixed(1)); vl.setAttribute('x2',xp(row.inc).toFixed(1));
     vl.setAttribute('visibility','visible');
@@ -439,18 +453,19 @@ function drawChart(id, rows, series, pct, zero) {
 }
 
 // ── DATA ─────────────────────────────────────────────────
-function buildData(st, y, o) {
+function buildData(st, y, o, o17) {
   var rows=[];
   for (var i=0; i<=200; i++) {
     var inc=i*1000;
-    var cl=calcTax(inc,st,y,o,false), pr=calcTax(inc,st,y,o,true);
+    var cl=calcTax(inc,st,y,o,o17,false), pr=calcTax(inc,st,y,o,o17,true);
     var cm=null,pm=null;
     if (i<200) {
-      var cl2=calcTax(inc+1000,st,y,o,false), pr2=calcTax(inc+1000,st,y,o,true);
+      var cl2=calcTax(inc+1000,st,y,o,o17,false), pr2=calcTax(inc+1000,st,y,o,o17,true);
       cm=(cl2.net-cl.net)/10; pm=(pr2.net-pr.net)/10;
     }
     rows.push({inc:inc,ch:Math.round(pr.net-cl.net),cn:Math.round(cl.net),pn:Math.round(pr.net),
-               ca:inc>0?(cl.net/inc)*100:null,pa:inc>0?(pr.net/inc)*100:null,cm:cm,pm:pm});
+               ca:inc>0?(cl.net/inc)*100:null,pa:inc>0?(pr.net/inc)*100:null,cm:cm,pm:pm,
+               ce:Math.round(cl.ei),pe:Math.round(pr.ei)});
   }
   return rows;
 }
@@ -468,9 +483,9 @@ var BLUE='#1d4ed8', GREEN='#059669';
 var CL='Current Law', PR='McDonald Rivet Proposal';
 
 function update() {
-  var tot=young+older;
-  var cl=calcTax(magi,status,young,older,false);
-  var pr=calcTax(magi,status,young,older,true);
+  var tot=young+older+older17;
+  var cl=calcTax(magi,status,young,older,older17,false);
+  var pr=calcTax(magi,status,young,older,older17,true);
   var delta=pr.net-cl.net;
 
   // MAGI
@@ -481,8 +496,11 @@ function update() {
   document.getElementById('yi').disabled=tot>=3;
   document.getElementById('od').disabled=older===0;
   document.getElementById('oi').disabled=tot>=3;
+  document.getElementById('s7d').disabled=older17===0;
+  document.getElementById('s7i').disabled=tot>=3;
   document.getElementById('yv').textContent=young;
   document.getElementById('ov').textContent=older;
+  document.getElementById('s7v').textContent=older17;
   var kn=document.getElementById('kn');
   kn.style.display=tot>0?'':'none';
   if(tot>0) kn.innerHTML='Total qualifying children: <strong>'+tot+'</strong> (maximum 3)';
@@ -528,7 +546,7 @@ function update() {
 
   // FPL calculations
   var adults = status === 'mfj' ? 2 : 1;
-  var hhSize = adults + young + older;
+  var hhSize = adults + young + older + older17;
   var fplLine = getFPL(hhSize);
   var magiPct = magi > 0 ? (magi/fplLine*100).toFixed(0) : 0;
   // Effective (after-tax) income = MAGI minus net tax liability
@@ -572,15 +590,17 @@ function update() {
   // Chart subtitle
   var stLab={single:'Single',hoh:'Head of Household',mfj:'Married Filing Jointly'};
   var kp=[young>0&&young+(young>1?' children':' child')+' age 3 or younger',
-          older>0&&older+(older>1?' children':' child')+' age 4–17'].filter(Boolean);
+          older>0&&older+(older>1?' children':' child')+' age 4–16',
+          older17>0&&older17+(older17>1?' children':' child')+' age 17'].filter(Boolean);
   document.getElementById('chart-sub').textContent=stLab[status]+' · '+(kp.length?kp.join(', '):'no children');
 
   // Charts
-  var d=buildData(status,young,older);
+  var d=buildData(status,young,older,older17);
   drawChart('c0',d,[{k:'ch',n:'Tax Change',c:GREEN,area:true}],false,true);
   drawChart('c1',d,[{k:'cn',n:CL,c:BLUE},{k:'pn',n:PR,c:GREEN,dash:true}],false,true);
   drawChart('c2',d.slice(1),[{k:'ca',n:CL,c:BLUE},{k:'pa',n:PR,c:GREEN,dash:true}],true,true);
   drawChart('c3',d.slice(0,200),[{k:'cm',n:CL,c:BLUE},{k:'pm',n:PR,c:GREEN,dash:true}],true,true);
+  drawChart('c4',d,[{k:'ce',n:CL,c:BLUE},{k:'pe',n:PR,c:GREEN,dash:true}],false,false,980);
 }
 
 // ── EVENTS ───────────────────────────────────────────────
@@ -595,9 +615,11 @@ document.querySelectorAll('.btn-st').forEach(function(b){
 });
 
 document.getElementById('yd').addEventListener('click',function(){ if(young>0){young--;update();} });
-document.getElementById('yi').addEventListener('click',function(){ if(young+older<3){young++;update();} });
+document.getElementById('yi').addEventListener('click',function(){ if(young+older+older17<3){young++;update();} });
 document.getElementById('od').addEventListener('click',function(){ if(older>0){older--;update();} });
-document.getElementById('oi').addEventListener('click',function(){ if(young+older<3){older++;update();} });
+document.getElementById('oi').addEventListener('click',function(){ if(young+older+older17<3){older++;update();} });
+document.getElementById('s7d').addEventListener('click',function(){ if(older17>0){older17--;update();} });
+document.getElementById('s7i').addEventListener('click',function(){ if(young+older+older17<3){older17++;update();} });
 
 // ── INIT ─────────────────────────────────────────────────
 update();
