@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>McDonald Rivet EITC Proposal — 2026 Tax Calculator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:#f1f5f9;color:#111827;min-height:100vh}
+.wrap{max-width:1100px;margin:0 auto;padding:22px 20px}
+.top-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.results-col{display:flex;flex-direction:column;gap:14px}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:20px 22px}
+header{background:linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%);color:#fff;padding:22px 32px 20px}
+.brand{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;opacity:.72;margin-bottom:6px}
+header h1{font-size:22px;font-weight:800;line-height:1.25;margin-bottom:6px}
+header p{opacity:.85;font-size:13px;max-width:680px;line-height:1.55}
+h2{font-size:15px;font-weight:700;color:#1e3a5f;margin-bottom:18px}
+.form-sec{margin-bottom:20px}
+.field-label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:8px}
+.magi-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+#magi-display{font-size:22px;font-weight:800;color:#1d4ed8;white-space:nowrap;margin-left:10px}
+#magi-range{width:100%;accent-color:#1d4ed8;cursor:pointer}
+.range-labs{display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-top:2px}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+.btn-st{padding:8px 14px;border-radius:8px;cursor:pointer;border:2px solid #e5e7eb;background:#fff;color:#374151;font-size:13px;font-weight:400;font-family:inherit}
+.btn-st.active{border-color:#1d4ed8;background:#eff6ff;color:#1d4ed8;font-weight:700}
+.ctr-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ctr-row{display:flex;align-items:center;gap:12px;margin-top:8px}
+.ctr-val{font-size:28px;font-weight:800;color:#1e3a5f;min-width:24px;text-align:center}
+.btn-ctr{width:36px;height:36px;border-radius:8px;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #1d4ed8;background:#eff6ff;color:#1d4ed8;font-family:inherit;flex-shrink:0}
+.btn-ctr:disabled{border-color:#e5e7eb;background:#f9fafb;color:#d1d5db;cursor:not-allowed}
+.kids-note{margin-top:10px;font-size:12px;color:#6b7280}
+#banner{border-radius:12px;padding:20px 24px;text-align:center;color:#fff}
+.ban-lbl{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.85;margin-bottom:8px}
+#ban-amt{font-size:48px;font-weight:900;letter-spacing:-2px;line-height:1}
+.ban-sub{font-size:13px;opacity:.9;margin-top:6px}
+.ban-note{font-size:12px;opacity:.75;margin-top:10px;font-style:italic}
+.bd-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.bd-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.bd-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid #f3f4f6}
+.bd-row.last{border-top:2px solid #e5e7eb;margin-top:4px}
+.bd-k{font-size:12px;color:#6b7280;padding-right:6px}
+.bd-v{font-size:13px;font-weight:500;white-space:nowrap}
+.bd-row.last .bd-v{font-weight:700}
+.bd-avg{margin-top:8px;font-size:11px;color:#6b7280}
+.fpl-sec{margin-top:16px;padding-top:14px;border-top:2px solid #e5e7eb}
+.fpl-meta{font-size:12px;color:#6b7280;margin-bottom:12px;line-height:1.6}
+.fpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+.fpl-col-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.fpl-pct{font-size:24px;font-weight:900;color:#1e3a5f;line-height:1}
+.fpl-sub{font-size:11px;color:#6b7280;margin-top:2px}
+.fpl-change{font-size:13px;font-weight:600;padding:8px 12px;border-radius:8px;line-height:1.45}
+.chart-hdr{margin-bottom:18px}
+.chart-hdr h2{margin-bottom:3px}
+.chart-sub{font-size:12px;color:#6b7280}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.chart-box h3{font-size:13px;font-weight:600;color:#374151;margin-bottom:8px}
+.chart-note{font-size:11px;color:#9ca3af;text-align:center;margin-top:4px}
+svg.chart{width:100%;height:auto;display:block}
+#tip{position:fixed;display:none;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;font-size:12px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:1000;min-width:160px}
+.tip-t{font-weight:700;color:#374151;margin-bottom:4px}
+.tip-l{margin-top:2px}
+.methodology{background:#e2e8f0;border-radius:8px;padding:13px 18px;font-size:12px;color:#475569;line-height:1.65;margin-top:0}
+.methodology strong{color:#1e293b}
+</style>
+</head>
+<body>
+
+<div id="tip"><div class="tip-t" id="tip-t"></div><div id="tip-l"></div></div>
+
+<header>
+  <div class="wrap" style="padding-top:0;padding-bottom:0">
+    <div class="brand">Bipartisan Policy Center · Tax Policy Analysis</div>
+    <h1>Rep. McDonald Rivet EITC Proposal: 2026 Federal Tax Calculator</h1>
+    <p>See how the proposed Earned Income Tax Credit expansion for families with children age 3 or younger would affect your 2026 federal tax liability compared to current law.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="top-row">
+
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Your Information</h2>
+      <div class="form-sec">
+        <div class="magi-row">
+          <label class="field-label" for="magi-range" style="margin-bottom:0">Modified Adjusted Gross Income (MAGI)</label>
+          <span id="magi-display">$50,000</span>
+        </div>
+        <input type="range" id="magi-range" min="0" max="500000" step="1000" value="50000">
+        <div class="range-labs"><span>$0</span><span>$500,000</span></div>
+      </div>
+      <div class="form-sec">
+        <label class="field-label">Filing Status</label>
+        <div class="btn-group">
+          <button class="btn-st active" data-st="single">Single</button>
+          <button class="btn-st" data-st="hoh">Head of Household</button>
+          <button class="btn-st" data-st="mfj">Married Filing Jointly</button>
+        </div>
+      </div>
+      <div class="form-sec" style="margin-bottom:0">
+        <div class="ctr-grid">
+          <div>
+            <label class="field-label">Children Age 3 or Younger</label>
+            <div class="ctr-row">
+              <button class="btn-ctr" id="yd" disabled>−</button>
+              <span class="ctr-val" id="yv">1</span>
+              <button class="btn-ctr" id="yi">+</button>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Children Age 4–17</label>
+            <div class="ctr-row">
+              <button class="btn-ctr" id="od" disabled>−</button>
+              <span class="ctr-val" id="ov">0</span>
+              <button class="btn-ctr" id="oi">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="kids-note" id="kn">Total qualifying children: <strong>1</strong> (maximum 3)</div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-col">
+      <div id="banner" style="background:linear-gradient(135deg,#065f46,#059669)">
+        <div class="ban-lbl" id="ban-lbl">Your Tax Cut Under the Proposal</div>
+        <div id="ban-amt">$0</div>
+        <div class="ban-sub" id="ban-sub"></div>
+        <div class="ban-note" id="ban-note"></div>
+      </div>
+      <div class="card" style="flex:1">
+        <h2 style="margin-bottom:14px">Tax Liability Breakdown</h2>
+        <div class="bd-grid">
+          <div>
+            <div class="bd-lbl" style="color:#1d4ed8">Current Law</div>
+            <div class="bd-row"><span class="bd-k">Income Tax (before credits)</span><span class="bd-v" id="cl-it"></span></div>
+            <div class="bd-row"><span class="bd-k">EITC</span><span class="bd-v" id="cl-ei"></span></div>
+            <div class="bd-row"><span class="bd-k">Child Tax Credit</span><span class="bd-v" id="cl-ct"></span></div>
+            <div class="bd-row last"><span class="bd-k" id="cl-nl">Net Tax Liability</span><span class="bd-v" id="cl-nt"></span></div>
+            <div class="bd-avg">Avg. rate: <strong id="cl-ar"></strong></div>
+          </div>
+          <div>
+            <div class="bd-lbl" style="color:#059669">McDonald Rivet Proposal</div>
+            <div class="bd-row"><span class="bd-k">Income Tax (before credits)</span><span class="bd-v" id="pr-it"></span></div>
+            <div class="bd-row"><span class="bd-k">EITC</span><span class="bd-v" id="pr-ei"></span></div>
+            <div class="bd-row"><span class="bd-k">Child Tax Credit</span><span class="bd-v" id="pr-ct"></span></div>
+            <div class="bd-row last"><span class="bd-k" id="pr-nl">Net Tax Liability</span><span class="bd-v" id="pr-nt"></span></div>
+            <div class="bd-avg">Avg. rate: <strong id="pr-ar"></strong></div>
+          </div>
+        </div>
+
+        <!-- FPL SECTION -->
+        <div class="fpl-sec">
+          <div class="bd-lbl" style="color:#374151;margin-bottom:8px">Federal Poverty Level (FPL) Impact</div>
+          <div class="fpl-meta" id="fpl-meta"></div>
+          <div class="fpl-grid">
+            <div>
+              <div class="fpl-col-lbl" style="color:#1d4ed8">Current Law</div>
+              <div class="fpl-pct" id="cl-fpl">—</div>
+              <div class="fpl-sub">of FPL (after taxes &amp; credits)</div>
+            </div>
+            <div>
+              <div class="fpl-col-lbl" style="color:#059669">McDonald Rivet Proposal</div>
+              <div class="fpl-pct" id="pr-fpl">—</div>
+              <div class="fpl-sub">of FPL (after taxes &amp; credits)</div>
+            </div>
+          </div>
+          <div class="fpl-change" id="fpl-change"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="card" style="margin-bottom:18px">
+    <div class="chart-hdr">
+      <h2>Tax Landscape: $0–$200,000 Income Range</h2>
+      <div class="chart-sub" id="chart-sub">Single · 1 child age 3 or younger</div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-box">
+        <h3>Tax Change Under Proposal</h3>
+        <svg id="c0" class="chart" viewBox="0 0 480 210"></svg>
+        <div class="chart-note">Values below $0 indicate a tax cut</div>
+      </div>
+      <div class="chart-box">
+        <h3>Net Tax Liability</h3>
+        <svg id="c1" class="chart" viewBox="0 0 480 210"></svg>
+      </div>
+      <div class="chart-box">
+        <h3>Average Tax Rate</h3>
+        <svg id="c2" class="chart" viewBox="0 0 480 210"></svg>
+      </div>
+      <div class="chart-box">
+        <h3>Effective Marginal Tax Rate</h3>
+        <svg id="c3" class="chart" viewBox="0 0 480 210"></svg>
+        <div class="chart-note">Change in net tax per additional $1,000 of income</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="methodology">
+    <strong>Methodology Notes:</strong> Assumes the standard deduction in all cases. The Child Tax Credit (CTC) is applied for eligible children (income above $2,500; MAGI below phase-out thresholds). The EITC for childless workers is subject to additional age restrictions (ages 25–64) not captured here. MAGI is treated as earned income for credit phase-in calculations. All figures reflect 2026 federal parameters only; state and local taxes are excluded. FPL percentages reflect the 2026 HHS Poverty Guidelines for the 48 contiguous states (effective January 13, 2026); household size equals the number of adults (1 for Single/Head of Household, 2 for Married Filing Jointly) plus total qualifying children. "Effective after-tax income" equals MAGI minus net federal tax liability (or plus net refund). This tool is for illustrative purposes only and does not constitute tax advice.
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── STATE ────────────────────────────────────────────────
+var magi = 50000, status = 'single', young = 1, older = 0;
+
+// ── TAX PARAMETERS ───────────────────────────────────────
+var BRACKETS = {
+  single:[[.10,12400],[.12,50400],[.22,105700],[.24,201775],[.32,256225],[.35,640600],[.37,1e18]],
+  hoh:   [[.10,17700],[.12,67450],[.22,105700],[.24,201750],[.32,256200],[.35,640600],[.37,1e18]],
+  mfj:   [[.10,24800],[.12,100800],[.22,211400],[.24,403550],[.32,512450],[.35,768700],[.37,1e18]]
+};
+var STD = {single:16100,hoh:24150,mfj:32200};
+var ECL = {
+  0:{pi:.0765,mx:664,  ma:8680, ds:10860,dm:18140,po:.0765,zs:19540,zm:26820},
+  1:{pi:.34,  mx:4427, ma:13020,ds:23890,dm:31160,po:.1598,zs:51593,zm:58863},
+  2:{pi:.40,  mx:7316, ma:18290,ds:23890,dm:31160,po:.2106,zs:58629,zm:65899},
+  3:{pi:.45,  mx:8231, ma:18290,ds:23890,dm:31160,po:.2106,zs:62974,zm:70244}
+};
+var EPR = {
+  '0_0':{pi:.0765, mx:664,  ma:8680, ds:10860,dm:18140,po:.0765,zs:19540,zm:26820},
+  '0_1':{pi:.34,   mx:4427, ma:13020,ds:23890,dm:31160,po:.1598,zs:51593,zm:58863},
+  '0_2':{pi:.40,   mx:7316, ma:18290,ds:23890,dm:31160,po:.2106,zs:58629,zm:65899},
+  '0_3':{pi:.45,   mx:8231, ma:18290,ds:23890,dm:31160,po:.2106,zs:62974,zm:70244},
+  '1_0':{pi:.7624, mx:9926, ma:13020,ds:23890,dm:31160,po:.2098,zs:71202,zm:78472},
+  '1_1':{pi:.7007, mx:12816,ma:18290,ds:23890,dm:31160,po:.2606,zs:73069,zm:80339},
+  '1_2':{pi:.7507, mx:13730,ma:18290,ds:23890,dm:31160,po:.2606,zs:76576,zm:83846},
+  '2_0':{pi:1.0014,mx:18316,ma:18290,ds:23890,dm:31160,po:.3106,zs:82858,zm:90128},
+  '2_1':{pi:1.0514,mx:19230,ma:18290,ds:23890,dm:31160,po:.3106,zs:85802,zm:93072},
+  '3_0':{pi:1.3521,mx:24730,ma:18290,ds:23890,dm:31160,po:.3606,zs:92470,zm:99740}
+};
+
+// ── CALC ─────────────────────────────────────────────────
+function incomeTax(ti, st) {
+  var bks = BRACKETS[st], tax = 0, prev = 0;
+  for (var i = 0; i < bks.length; i++) {
+    var rate = bks[i][0], upTo = bks[i][1];
+    if (ti <= prev) break;
+    tax += (Math.min(ti, upTo) - prev) * rate;
+    if (ti < upTo) break;
+    prev = upTo;
+  }
+  return Math.max(0, tax);
+}
+
+function eitc(m, mfj, p) {
+  if (m <= 0) return 0;
+  var pd = mfj ? p.dm : p.ds, z = mfj ? p.zm : p.zs;
+  if (m >= z) return 0;
+  if (m <= p.ma) return Math.min(m * p.pi, p.mx);
+  if (m <= pd)  return p.mx;
+  return Math.max(0, p.mx - (m - pd) * p.po);
+}
+
+function calcTax(m, st, y, o, prop) {
+  var tot = y + o, mfj = st === 'mfj';
+  var ti = Math.max(0, m - STD[st]);
+  var it = incomeTax(ti, st);
+  var key = y + '_' + o;
+  var ep = prop ? (EPR[key] || ECL[Math.min(tot,3)]) : ECL[Math.min(tot,3)];
+  var ei = eitc(m, mfj, ep);
+  var cs = mfj ? 400000 : 200000;
+  var cf = 2200 * tot;
+  var cp = tot > 0 ? Math.max(0, cf - Math.max(0, m - cs) * .05) : 0;
+  var nr = Math.min(it, cp);
+  var ac = tot > 0 ? Math.min(cp - nr, Math.min(1700*tot, Math.max(0,m-2500)*.15)) : 0;
+  var ct = nr + ac;
+  return {it:it, ei:ei, ct:ct, net:it - ct - ei};
+}
+
+// ── FORMAT ───────────────────────────────────────────────
+function fUSD(n) {
+  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
+}
+function fK(n) {
+  var a = Math.abs(n), s = n < 0 ? '-' : '';
+  return a >= 1000 ? s+'$'+(a/1000).toFixed(0)+'k' : s+'$'+a.toFixed(0);
+}
+function fP(n) { return n.toFixed(0)+'%'; }
+function fBD(n) {
+  if (n < 0) return '<span style="color:#059669">('+fUSD(Math.abs(n))+')</span>';
+  return fUSD(n);
+}
+
+// ── SVG CHARTS ───────────────────────────────────────────
+var NS = 'http://www.w3.org/2000/svg';
+var CW=480, CH=210, ML=58, MR=12, MT=8, MB=34, PW=410, PH=168;
+
+function svgEl(tag, a) {
+  var e = document.createElementNS(NS, tag);
+  for (var k in a) e.setAttribute(k, a[k]);
+  return e;
+}
+
+function niceTicks(lo, hi) {
+  var range = hi - lo || 2;
+  var rough = range / 5;
+  var mag = Math.pow(10, Math.floor(Math.log10(Math.abs(rough)||1)));
+  var steps = [1,2,5,10];
+  var nf = mag;
+  for (var i=0; i<steps.length; i++) { nf = steps[i]*mag; if (nf >= rough) break; }
+  var start = Math.ceil(lo/nf)*nf;
+  var ticks = [];
+  var t = start;
+  while (t <= hi + nf*0.01) {
+    ticks.push(Math.round(t*1e8)/1e8);
+    t = Math.round((t+nf)*1e8)/1e8;
+  }
+  return ticks;
+}
+
+function ptPath(pts) {
+  var d = '';
+  for (var i=0; i<pts.length; i++) d += (i?'L':'M')+pts[i][0].toFixed(1)+','+pts[i][1].toFixed(1);
+  return d;
+}
+
+function drawChart(id, rows, series, pct, zero) {
+  var svg = document.getElementById(id);
+  svg.innerHTML = '';
+
+  // y range
+  var lo=1e18, hi=-1e18;
+  for (var ri=0; ri<rows.length; ri++) {
+    for (var si=0; si<series.length; si++) {
+      var v = rows[ri][series[si].k];
+      if (v!=null && isFinite(v)) { if(v<lo)lo=v; if(v>hi)hi=v; }
+    }
+  }
+  if (lo===1e18) { lo=0; hi=1; }
+  if (zero) { if(lo>0)lo=0; if(hi<0)hi=0; }
+  var pad = Math.max(Math.abs(hi-lo)*.1, 1);
+  lo-=pad; hi+=pad;
+
+  function xp(inc) { return ML + (inc/200000)*PW; }
+  function yp(v)   { return MT + PH - ((v-lo)/(hi-lo))*PH; }
+  var y0 = yp(0);
+
+  // Grid + y ticks
+  var ytk = niceTicks(lo, hi);
+  for (var i=0; i<ytk.length; i++) {
+    var yy = yp(ytk[i]);
+    svg.appendChild(svgEl('line',{x1:ML,x2:ML+PW,y1:yy.toFixed(1),y2:yy.toFixed(1),stroke:'#f0f0f0','stroke-width':'1'}));
+    var lab = pct ? fP(ytk[i]) : fK(ytk[i]);
+    var t = svgEl('text',{x:ML-5,y:(yy+3.5).toFixed(1),'text-anchor':'end','font-size':'10','fill':'#6b7280','font-family':'inherit'});
+    t.textContent = lab;
+    svg.appendChild(t);
+  }
+
+  // Zero line
+  if (zero) svg.appendChild(svgEl('line',{x1:ML,x2:ML+PW,y1:y0.toFixed(1),y2:y0.toFixed(1),stroke:'#374151','stroke-width':'1.5'}));
+
+  // X ticks
+  var xtk=[[0,'$0'],[50000,'$50k'],[100000,'$100k'],[150000,'$150k'],[200000,'$200k']];
+  for (var i=0; i<xtk.length; i++) {
+    var xx = xp(xtk[i][0]);
+    var t2 = svgEl('text',{x:xx.toFixed(1),y:(MT+PH+16).toFixed(1),'text-anchor':'middle','font-size':'10','fill':'#6b7280','font-family':'inherit'});
+    t2.textContent = xtk[i][1];
+    svg.appendChild(t2);
+  }
+
+  // Axes
+  svg.appendChild(svgEl('line',{x1:ML,x2:ML,y1:MT,y2:MT+PH,stroke:'#e5e7eb','stroke-width':'1'}));
+  svg.appendChild(svgEl('line',{x1:ML,x2:ML+PW,y1:MT+PH,y2:MT+PH,stroke:'#e5e7eb','stroke-width':'1'}));
+
+  // Series
+  for (var si=0; si<series.length; si++) {
+    var s = series[si];
+    var pts = [];
+    for (var ri=0; ri<rows.length; ri++) {
+      var v2 = rows[ri][s.k];
+      if (v2!=null && isFinite(v2)) pts.push([xp(rows[ri].inc), yp(v2)]);
+    }
+    if (!pts.length) continue;
+
+    // Area fill
+    if (s.area) {
+      var lp=pts[pts.length-1], fp=pts[0];
+      var ad = ptPath(pts)+' L'+lp[0].toFixed(1)+','+y0.toFixed(1)+' L'+fp[0].toFixed(1)+','+y0.toFixed(1)+' Z';
+      svg.appendChild(svgEl('path',{d:ad,fill:'rgba(5,150,105,0.15)',stroke:'none'}));
+    }
+
+    var pa = {d:ptPath(pts),stroke:s.c,'stroke-width':'2',fill:'none'};
+    if (s.dash) pa['stroke-dasharray']='6,3';
+    svg.appendChild(svgEl('path',pa));
+  }
+
+  // Legend
+  var lx = ML;
+  for (var si=0; si<series.length; si++) {
+    var s=series[si];
+    if (!s.n) continue;
+    var ll = svgEl('line',{x1:lx,x2:lx+18,y1:MT+PH+29,y2:MT+PH+29,stroke:s.c,'stroke-width':'2'});
+    if (s.dash) ll.setAttribute('stroke-dasharray','6,3');
+    svg.appendChild(ll);
+    var lt = svgEl('text',{x:lx+22,y:MT+PH+33,'font-size':'10','fill':'#374151','font-family':'inherit'});
+    lt.textContent = s.n;
+    svg.appendChild(lt);
+    lx += s.n.length*5.8+28;
+  }
+
+  // Hover vline + overlay
+  var vl = svgEl('line',{x1:ML,x2:ML,y1:MT,y2:MT+PH,stroke:'#9ca3af','stroke-width':'1','stroke-dasharray':'4,2',visibility:'hidden'});
+  svg.appendChild(vl);
+  var ov = svgEl('rect',{x:ML,y:MT,width:PW,height:PH,fill:'transparent',style:'cursor:crosshair'});
+  svg.appendChild(ov);
+
+  var tip=document.getElementById('tip'), tit=document.getElementById('tip-t'), tli=document.getElementById('tip-l');
+
+  ov.addEventListener('mousemove', function(e) {
+    var r = svg.getBoundingClientRect();
+    var fx = (e.clientX - r.left) / r.width * CW;
+    var idx = Math.round(Math.max(0,Math.min(PW,fx-ML))/PW*200);
+    var row = rows[idx]; if(!row) return;
+    vl.setAttribute('x1',xp(row.inc).toFixed(1)); vl.setAttribute('x2',xp(row.inc).toFixed(1));
+    vl.setAttribute('visibility','visible');
+    tit.textContent = 'MAGI: '+fUSD(row.inc);
+    var html='';
+    for (var si=0; si<series.length; si++) {
+      var s=series[si]; if(!s.n) continue;
+      var v=row[s.k]; if(v==null||!isFinite(v)) continue;
+      html+='<div class="tip-l" style="color:'+s.c+'">'+s.n+': '+(pct?v.toFixed(1)+'%':fUSD(v))+'</div>';
+    }
+    tli.innerHTML=html;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px';
+    tip.style.top=(e.clientY-12)+'px';
+  });
+  ov.addEventListener('mouseleave',function(){ vl.setAttribute('visibility','hidden'); tip.style.display='none'; });
+}
+
+// ── DATA ─────────────────────────────────────────────────
+function buildData(st, y, o) {
+  var rows=[];
+  for (var i=0; i<=200; i++) {
+    var inc=i*1000;
+    var cl=calcTax(inc,st,y,o,false), pr=calcTax(inc,st,y,o,true);
+    var cm=null,pm=null;
+    if (i<200) {
+      var cl2=calcTax(inc+1000,st,y,o,false), pr2=calcTax(inc+1000,st,y,o,true);
+      cm=(cl2.net-cl.net)/10; pm=(pr2.net-pr.net)/10;
+    }
+    rows.push({inc:inc,ch:Math.round(pr.net-cl.net),cn:Math.round(cl.net),pn:Math.round(pr.net),
+               ca:inc>0?(cl.net/inc)*100:null,pa:inc>0?(pr.net/inc)*100:null,cm:cm,pm:pm});
+  }
+  return rows;
+}
+
+// ── FPL DATA (2026 HHS Guidelines, 48 Contiguous States) ─
+var FPL_TABLE = [0,15960,21640,27320,33000,38680,44360,50040,55720];
+var FPL_ADD = 5680;
+function getFPL(size) {
+  size = Math.max(1, size);
+  return size <= 8 ? FPL_TABLE[size] : FPL_TABLE[8] + (size-8)*FPL_ADD;
+}
+
+// ── UPDATE ───────────────────────────────────────────────
+var BLUE='#1d4ed8', GREEN='#059669';
+var CL='Current Law', PR='McDonald Rivet Proposal';
+
+function update() {
+  var tot=young+older;
+  var cl=calcTax(magi,status,young,older,false);
+  var pr=calcTax(magi,status,young,older,true);
+  var delta=pr.net-cl.net;
+
+  // MAGI
+  document.getElementById('magi-display').textContent=fUSD(magi);
+
+  // Counters
+  document.getElementById('yd').disabled=young===0;
+  document.getElementById('yi').disabled=tot>=3;
+  document.getElementById('od').disabled=older===0;
+  document.getElementById('oi').disabled=tot>=3;
+  document.getElementById('yv').textContent=young;
+  document.getElementById('ov').textContent=older;
+  var kn=document.getElementById('kn');
+  kn.style.display=tot>0?'':'none';
+  if(tot>0) kn.innerHTML='Total qualifying children: <strong>'+tot+'</strong> (maximum 3)';
+
+  // Banner
+  var ban=document.getElementById('banner');
+  var amt=document.getElementById('ban-amt');
+  var lbl=document.getElementById('ban-lbl');
+  var sub=document.getElementById('ban-sub');
+  var note=document.getElementById('ban-note');
+  if (delta<-0.5) {
+    ban.style.background='linear-gradient(135deg,#065f46,#059669)';
+    lbl.textContent='Your Tax Cut Under the Proposal';
+    amt.textContent=fUSD(Math.abs(delta));
+    sub.textContent='less in 2026 federal taxes';
+    note.textContent='';
+  } else if (delta>0.5) {
+    ban.style.background='linear-gradient(135deg,#7f1d1d,#dc2626)';
+    lbl.textContent='Your Tax Increase Under the Proposal';
+    amt.textContent='+'+fUSD(delta);
+    sub.textContent='more in 2026 federal taxes';
+    note.textContent='';
+  } else {
+    ban.style.background='linear-gradient(135deg,#374151,#6b7280)';
+    lbl.textContent='No Change Under the Proposal';
+    amt.textContent='$0';
+    sub.textContent='';
+    note.textContent=young===0
+      ? (tot===0?'Add children age 3 or younger to see a tax change.':'This proposal only affects families with children age 3 or younger.')
+      : '';
+  }
+
+  // Breakdown
+  function setCol(p,d) {
+    document.getElementById(p+'-it').innerHTML=fBD(d.it);
+    document.getElementById(p+'-ei').innerHTML=fBD(-d.ei);
+    document.getElementById(p+'-ct').innerHTML=fBD(-d.ct);
+    document.getElementById(p+'-nl').textContent=d.net<0?'Net Refund':'Net Tax Liability';
+    document.getElementById(p+'-nt').innerHTML=fBD(d.net);
+    document.getElementById(p+'-ar').textContent=magi>0?((d.net/magi)*100).toFixed(1)+'%':'0.0%';
+  }
+  setCol('cl',cl); setCol('pr',pr);
+
+  // FPL calculations
+  var adults = status === 'mfj' ? 2 : 1;
+  var hhSize = adults + young + older;
+  var fplLine = getFPL(hhSize);
+  var magiPct = magi > 0 ? (magi/fplLine*100).toFixed(0) : 0;
+  // Effective (after-tax) income = MAGI minus net tax liability
+  // (if net tax is negative/refund, effective income exceeds MAGI)
+  var clEff = magi - cl.net;
+  var prEff = magi - pr.net;
+  var clFplPct = (clEff/fplLine*100).toFixed(1);
+  var prFplPct = (prEff/fplLine*100).toFixed(1);
+  var fplDelta = ((prEff - clEff)/fplLine*100);
+
+  var szLabel = hhSize === 1 ? '1 person' : hhSize + ' persons';
+  var adultLabel = adults === 1 ? '1 adult' : '2 adults';
+  document.getElementById('fpl-meta').innerHTML =
+    'Household: <strong>'+szLabel+'</strong> ('+adultLabel+', '+tot+(tot===1?' child':' children')+') &nbsp;·&nbsp; '+
+    '2026 FPL: <strong>'+fUSD(fplLine)+'</strong> &nbsp;·&nbsp; '+
+    'MAGI is <strong>'+(magi>0?magiPct+'%':'—')+'</strong> of FPL';
+
+  document.getElementById('cl-fpl').textContent = magi > 0 ? clFplPct + '%' : '—';
+  document.getElementById('pr-fpl').textContent = magi > 0 ? prFplPct + '%' : '—';
+
+  var fplChEl = document.getElementById('fpl-change');
+  if (magi === 0) {
+    fplChEl.textContent = 'Enter an income above $0 to see the FPL impact.';
+    fplChEl.style.background = '#f8fafc';
+    fplChEl.style.color = '#6b7280';
+  } else if (Math.abs(fplDelta) < 0.05) {
+    fplChEl.textContent = 'No change in effective % FPL under this proposal.';
+    fplChEl.style.background = '#f8fafc';
+    fplChEl.style.color = '#374151';
+  } else {
+    var dir = fplDelta > 0 ? 'increases' : 'decreases';
+    var clr = fplDelta > 0 ? '#059669' : '#dc2626';
+    var bg  = fplDelta > 0 ? '#f0fdf4' : '#fef2f2';
+    fplChEl.innerHTML = 'The proposal <strong>'+dir+'</strong> this household\'s effective after-tax income by ' +
+      '<strong>'+Math.abs(fplDelta).toFixed(1)+' percentage points of FPL</strong> — from '+
+      clFplPct+'% to '+prFplPct+'% of the federal poverty level.';
+    fplChEl.style.background = bg;
+    fplChEl.style.color = clr;
+  }
+
+  // Chart subtitle
+  var stLab={single:'Single',hoh:'Head of Household',mfj:'Married Filing Jointly'};
+  var kp=[young>0&&young+(young>1?' children':' child')+' age 3 or younger',
+          older>0&&older+(older>1?' children':' child')+' age 4–17'].filter(Boolean);
+  document.getElementById('chart-sub').textContent=stLab[status]+' · '+(kp.length?kp.join(', '):'no children');
+
+  // Charts
+  var d=buildData(status,young,older);
+  drawChart('c0',d,[{k:'ch',n:'Tax Change',c:GREEN,area:true}],false,true);
+  drawChart('c1',d,[{k:'cn',n:CL,c:BLUE},{k:'pn',n:PR,c:GREEN,dash:true}],false,true);
+  drawChart('c2',d.slice(1),[{k:'ca',n:CL,c:BLUE},{k:'pa',n:PR,c:GREEN,dash:true}],true,true);
+  drawChart('c3',d.slice(0,200),[{k:'cm',n:CL,c:BLUE},{k:'pm',n:PR,c:GREEN,dash:true}],true,true);
+}
+
+// ── EVENTS ───────────────────────────────────────────────
+document.getElementById('magi-range').addEventListener('input',function(){ magi=+this.value; update(); });
+
+document.querySelectorAll('.btn-st').forEach(function(b){
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.btn-st').forEach(function(x){ x.classList.remove('active'); });
+    this.classList.add('active');
+    status=this.dataset.st; update();
+  });
+});
+
+document.getElementById('yd').addEventListener('click',function(){ if(young>0){young--;update();} });
+document.getElementById('yi').addEventListener('click',function(){ if(young+older<3){young++;update();} });
+document.getElementById('od').addEventListener('click',function(){ if(older>0){older--;update();} });
+document.getElementById('oi').addEventListener('click',function(){ if(young+older<3){older++;update();} });
+
+// ── INIT ─────────────────────────────────────────────────
+update();
+</script>
+</body>
+</html>
