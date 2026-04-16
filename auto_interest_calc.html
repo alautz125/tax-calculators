@@ -87,7 +87,7 @@
       margin-bottom: 0.35rem;
       letter-spacing: 0.01em;
     }
-    select, input[type="number"] {
+    select, input[type="text"], input[type="number"] {
       width: 100%;
       padding: 0.6rem 0.85rem;
       border: 1.5px solid #cbd5e0;
@@ -101,7 +101,7 @@
     }
     select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23718096' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.85rem center; padding-right: 2.25rem; }
     select:focus, input:focus { outline: none; border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49,130,206,0.12); }
-    input:read-only { background: #f7faff; cursor: default; color: #4a5568; }
+    input[readonly] { background: #f7faff; cursor: default; color: #4a5568; }
     .input-hint { font-size: 0.775rem; color: #a0aec0; margin-top: 0.3rem; }
 
     .prefix-input, .suffix-input { position: relative; }
@@ -329,7 +329,7 @@
       <label for="magi">Modified Adjusted Gross Income (MAGI)</label>
       <div class="prefix-input">
         <span class="prefix">$</span>
-        <input type="number" id="magi" placeholder="e.g. 75000" min="0" step="1000">
+        <input type="text" id="magi" inputmode="numeric" placeholder="e.g., 75,000" oninput="commaInput(this)">
       </div>
       <p class="input-hint">For most taxpayers, MAGI is equal or close to Adjusted Gross Income (AGI) on your tax return.</p>
     </div>
@@ -395,7 +395,7 @@
         <label for="interestPaid">Total Auto Loan Interest Paid in 2026</label>
         <div class="prefix-input">
           <span class="prefix">$</span>
-          <input type="number" id="interestPaid" placeholder="e.g. 2500" min="0" step="100">
+          <input type="text" id="interestPaid" inputmode="numeric" placeholder="e.g., 2,500" oninput="commaInput(this)">
         </div>
       </div>
     </div>
@@ -407,14 +407,14 @@
           <label for="carPrice">Vehicle Purchase Price</label>
           <div class="prefix-input">
             <span class="prefix">$</span>
-            <input type="number" id="carPrice" placeholder="e.g. 40000" min="0" step="500" oninput="handleLoanInput()">
+            <input type="text" id="carPrice" inputmode="numeric" placeholder="e.g., 40,000" oninput="handleLoanInput(this)">
           </div>
         </div>
         <div class="form-group">
           <label for="downPayment">Down Payment</label>
           <div class="prefix-input">
             <span class="prefix">$</span>
-            <input type="number" id="downPayment" placeholder="Defaults to 20%" min="0" step="500" oninput="handleDpInput()">
+            <input type="text" id="downPayment" inputmode="numeric" placeholder="Defaults to 20%" oninput="handleDpInput(this)">
           </div>
         </div>
         <div class="form-group">
@@ -433,7 +433,7 @@
         <div class="form-group">
           <label for="interestRate">Annual Interest Rate</label>
           <div class="suffix-input">
-            <input type="number" id="interestRate" placeholder="e.g. 5.0" min="0.01" max="35" step="0.1" oninput="updateLoanCalc()">
+            <input type="number" id="interestRate" placeholder="e.g., 5.0" min="0.01" max="35" step="0.1" oninput="updateLoanCalc()">
             <span class="suffix">%</span>
           </div>
         </div>
@@ -508,6 +508,35 @@ let mode = 'simple';
 let selectedYear = null;
 let dpUserEdited = false;
 
+/* ===================== COMMA FORMATTING ===================== */
+function commaInput(el) {
+  const pos     = el.selectionStart;
+  const oldVal  = el.value;
+  const oldLen  = oldVal.length;
+
+  // Count commas before the cursor in the old value
+  const commasBefore = (oldVal.slice(0, pos).match(/,/g) || []).length;
+
+  // Strip everything except digits
+  const digits = oldVal.replace(/\D/g, '');
+  const formatted = digits ? Number(digits).toLocaleString('en-US') : '';
+  el.value = formatted;
+
+  // Count commas before the same digit position in the new value
+  const digitsBeforeCursor = pos - commasBefore;
+  let newPos = 0, digitsSeen = 0;
+  while (newPos < formatted.length && digitsSeen < digitsBeforeCursor) {
+    if (formatted[newPos] !== ',') digitsSeen++;
+    newPos++;
+  }
+  el.setSelectionRange(newPos, newPos);
+}
+
+// Parse a comma-formatted text input to a number
+function parseNum(id) {
+  return parseFloat((document.getElementById(id).value || '').replace(/,/g, '')) || 0;
+}
+
 /* ===================== ELIGIBILITY ===================== */
 function setAnswer(q, val, btn) {
   ans[q] = val;
@@ -536,8 +565,8 @@ function pmt(r, n, pv) {
 
 function yearInterest(annRate, termYrs, loan, yr) {
   if (yr > termYrs) return 0;
-  const mr = annRate / 12;
-  const nm = termYrs * 12;
+  const mr  = annRate / 12;
+  const nm  = termYrs * 12;
   const pay = pmt(mr, nm, loan);
   let bal = loan, int = 0;
   const s = (yr - 1) * 12 + 1, e = yr * 12;
@@ -549,24 +578,26 @@ function yearInterest(annRate, termYrs, loan, yr) {
   return int;
 }
 
-function handleDpInput() {
+function handleDpInput(el) {
   dpUserEdited = true;
+  commaInput(el);
   updateLoanCalc();
 }
 
-function handleLoanInput() {
-  const price = parseFloat(document.getElementById('carPrice').value) || 0;
-  const dpEl = document.getElementById('downPayment');
+function handleLoanInput(el) {
+  commaInput(el);
+  const price = parseNum('carPrice');
+  const dpEl  = document.getElementById('downPayment');
   if (!dpUserEdited && price > 0) {
-    dpEl.value = Math.round(price * 0.20);
+    dpEl.value = Math.round(price * 0.20).toLocaleString('en-US');
   }
   updateLoanCalc();
 }
 
 function updateLoanCalc() {
-  const price   = parseFloat(document.getElementById('carPrice').value)    || 0;
-  const dp      = parseFloat(document.getElementById('downPayment').value)  || 0;
-  const termYrs = parseInt(document.getElementById('loanTerm').value)       || 0;
+  const price   = parseNum('carPrice');
+  const dp      = parseNum('downPayment');
+  const termYrs = parseInt(document.getElementById('loanTerm').value) || 0;
   const annRate = parseFloat(document.getElementById('interestRate').value) / 100 || 0;
   const loan    = price - dp;
 
@@ -576,14 +607,13 @@ function updateLoanCalc() {
   }
 
   const mr   = annRate / 12;
-  const nm   = termYrs * 12;
-  const mpay = pmt(mr, nm, loan);
+  const mpay = pmt(mr, termYrs * 12, loan);
 
   const tbody = document.getElementById('amortBody');
   tbody.innerHTML = '';
   for (let y = 1; y <= termYrs; y++) {
-    const int = yearInterest(annRate, termYrs, loan, y);
-    const tr = document.createElement('tr');
+    const int  = yearInterest(annRate, termYrs, loan, y);
+    const tr   = document.createElement('tr');
     const isSel = (y === selectedYear);
     tr.className = (y % 2 === 0 ? 'even' : '') + (isSel ? ' sel-row' : '');
     tr.innerHTML =
@@ -606,7 +636,7 @@ function useInterest(amt, yr) {
        <span class="clr" onclick="clearInterest()">Clear</span>
      </div>`;
   document.getElementById('selIntBox').style.display = 'block';
-  updateLoanCalc(); // re-render to highlight row
+  updateLoanCalc();
 }
 
 function clearInterest() {
@@ -630,55 +660,61 @@ function calcTax(income, fs) {
 
 function marginalRate(income, fs) {
   if (income <= 0) return BRACKETS[fs][0].rate;
-  let prev = 0;
   for (const b of BRACKETS[fs]) {
     if (income <= b.upTo) return b.rate;
-    prev = b.upTo;
   }
   return 0.37;
+}
+
+/* ===================== DETAILS TOGGLE ===================== */
+function toggleDetails(btn) {
+  btn.classList.toggle('open');
+  const content = btn.nextElementSibling;
+  content.classList.toggle('open');
+  btn.querySelector('.arrow').textContent = btn.classList.contains('open') ? '▾' : '▸';
+  btn.querySelector('.lbl-txt').textContent = btn.classList.contains('open') ? 'Hide calculation details' : 'Show calculation details';
 }
 
 /* ===================== MAIN CALCULATE ===================== */
 function calculate() {
   const fs   = document.getElementById('filingStatus').value;
-  const magi = parseFloat(document.getElementById('magi').value);
+  const magi = parseNum('magi');
 
-  // Validation
   const errs = [];
-  if (!fs)               errs.push('Please select your filing status.');
-  if (!magi || magi < 0) errs.push('Please enter your MAGI.');
-  if (ans.newCar       === null) errs.push('Please answer the vehicle eligibility question about new vs. used.');
-  if (ans.usAssembly   === null) errs.push('Please answer the vehicle eligibility question about U.S. final assembly.');
+  if (!fs)          errs.push('Please select your filing status.');
+  if (magi <= 0)    errs.push('Please enter your MAGI.');
+  if (ans.newCar         === null) errs.push('Please answer the vehicle eligibility question about new vs. used.');
+  if (ans.usAssembly     === null) errs.push('Please answer the vehicle eligibility question about U.S. final assembly.');
   if (ans.weightUnder14k === null) errs.push('Please answer the vehicle eligibility question about vehicle weight.');
-  if (ans.personalUse  === null) errs.push('Please answer the vehicle eligibility question about personal use.');
+  if (ans.personalUse    === null) errs.push('Please answer the vehicle eligibility question about personal use.');
 
   let interest = 0;
   if (mode === 'simple') {
-    interest = parseFloat(document.getElementById('interestPaid').value);
-    if (!interest || interest < 0) errs.push('Please enter the auto loan interest you paid.');
+    interest = parseNum('interestPaid');
+    if (interest <= 0) errs.push('Please enter the auto loan interest you paid.');
   } else {
-    interest = parseFloat(document.getElementById('estimatedInterest').value);
-    if (!interest || interest < 0) errs.push('Please use the loan calculator to select a year\'s estimated interest.');
+    interest = parseFloat(document.getElementById('estimatedInterest').value) || 0;
+    if (interest <= 0) errs.push('Please use the loan calculator to select a year\'s estimated interest.');
   }
 
   if (errs.length) { alert(errs.join('\n')); return; }
 
-  // Eligibility check
+  // Eligibility
   const inel = [];
   if (!ans.newCar)         inel.push('The deduction applies only to <strong>new vehicles</strong> — used or pre-owned vehicles do not qualify.');
   if (!ans.usAssembly)     inel.push('The deduction requires that <strong>final assembly occurred in the United States</strong>.');
   if (!ans.weightUnder14k) inel.push('The deduction is limited to vehicles with a gross vehicle weight <strong>under 14,000 pounds</strong>.');
   if (!ans.personalUse)    inel.push('The deduction requires that <strong>more than 50% of use is personal</strong> (not primarily for business).');
 
-  const stdDed      = STD_DED[fs];
-  const phaseStart  = (fs === 'Married Filing Jointly') ? PHASEOUT_MFJ : PHASEOUT_OTH;
-  const phaseEnd    = phaseStart + (MAX_DED / PHASEOUT_RATE);   // = threshold + $100k range
-  const excess      = Math.max(0, magi - phaseStart);
-  const reduction   = excess * PHASEOUT_RATE;
-  const capped      = Math.min(interest, MAX_DED);
-  const eligDed     = Math.max(0, capped - reduction);
-  const phasedOut   = (magi >= phaseEnd);
-  const partial     = (!phasedOut && magi > phaseStart);
+  const stdDed     = STD_DED[fs];
+  const phaseStart = (fs === 'Married Filing Jointly') ? PHASEOUT_MFJ : PHASEOUT_OTH;
+  const phaseEnd   = phaseStart + (MAX_DED / PHASEOUT_RATE);
+  const excess     = Math.max(0, magi - phaseStart);
+  const reduction  = excess * PHASEOUT_RATE;
+  const capped     = Math.min(interest, MAX_DED);
+  const eligDed    = Math.max(0, capped - reduction);
+  const phasedOut  = (magi >= phaseEnd);
+  const partial    = (!phasedOut && magi > phaseStart);
   const phaseoutPct = Math.min(100, (reduction / MAX_DED) * 100);
 
   const tiBase  = Math.max(0, magi - stdDed);
@@ -688,7 +724,6 @@ function calculate() {
   const savings = taxWO - taxWith;
   const mRate   = marginalRate(tiBase, fs);
 
-  // Render
   const R = document.getElementById('results');
   R.style.display = 'block';
 
@@ -717,7 +752,7 @@ function calculate() {
           <p style="font-size:.875rem;color:#4a5568;margin-bottom:.9rem;">Your vehicle qualifies, but your MAGI exceeds the income level at which the deduction is fully eliminated.</p>
           <table class="dtl-table">
             <tr><td>Your MAGI</td><td>${dollar(magi)}</td></tr>
-            <tr><td>Phaseout Begins</td><td>${dollar(phaseStart)}</td></tr>
+            <tr><td>Phaseout Begins At</td><td>${dollar(phaseStart)}</td></tr>
             <tr><td>Deduction Fully Eliminated At</td><td>${dollar(phaseEnd)}</td></tr>
             <tr><td>Eligible Deduction</td><td>$0</td></tr>
           </table>
@@ -796,21 +831,12 @@ function calculate() {
 
             </div><!-- /.details-content -->
           </div><!-- /.details-wrap -->
+
         </div>
       </div>`;
   }
 
   R.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-/* ===================== DETAILS TOGGLE ===================== */
-function toggleDetails(btn) {
-  btn.classList.toggle('open');
-  const content = btn.nextElementSibling;
-  content.classList.toggle('open');
-  btn.querySelector('.arrow').textContent = btn.classList.contains('open') ? '▾' : '▸';
-  const label = btn.querySelector('.lbl-txt');
-  label.textContent = btn.classList.contains('open') ? 'Hide calculation details' : 'Show calculation details';
 }
 
 /* ===================== HELPERS ===================== */
