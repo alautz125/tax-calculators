@@ -227,11 +227,18 @@ header p{font-size:.78rem;opacity:.8;margin-top:2px}
     </div>
     <div class="step-body">
       <div id="summaryStrip2"></div>
-      <div class="field">
-        <label>Wages &amp; Salary</label>
+      <div class="field" id="wagesSelfField">
+        <label id="wagesSelfLabel">Wages &amp; Salary</label>
         <div class="dollar-wrap">
-          <input type="text" id="wages" value="75,000" onfocus="unformatDollar(this)" onblur="formatDollar(this)">
+          <input type="text" id="wagesSelf" value="75,000" onfocus="unformatDollar(this)" onblur="formatDollar(this)">
         </div>
+      </div>
+      <div class="field" id="wagesSpouseField" style="display:none">
+        <label>Wages &amp; Salary — Spouse</label>
+        <div class="dollar-wrap">
+          <input type="text" id="wagesSpouse" value="0" onfocus="unformatDollar(this)" onblur="formatDollar(this)">
+        </div>
+        <div class="hint">Social Security wage cap ($184,500) applied separately per earner</div>
       </div>
       <div class="field">
         <label>Investment Income (total)</label>
@@ -321,7 +328,7 @@ header p{font-size:.78rem;opacity:.8;margin-top:2px}
         </div>
       </div>
 
-      <div style="border-top:1px solid #f0f4f8;padding-top:14px;margin-top:6px">
+      <div id="blindSection" style="border-top:1px solid #f0f4f8;padding-top:14px;margin-top:6px">
         <div class="field">
           <label>Additional Standard Deduction (blind filers)</label>
           <div class="dollar-wrap">
@@ -451,7 +458,8 @@ header p{font-size:.78rem;opacity:.8;margin-top:2px}
       <span>Income &amp; AGI</span><span class="collapse-arrow">▼</span>
     </div>
     <div class="collapse-content open">
-      <div class="result-row"><span class="label">Wages &amp; Salary</span><span class="value" id="r_wages">$0</span></div>
+      <div class="result-row" id="r_wagesSelfRow"><span class="label" id="r_wagesSelfLabel">Wages &amp; Salary</span><span class="value" id="r_wages">$0</span></div>
+      <div class="result-row" id="r_wagesSpouseRow" style="display:none"><span class="label">Wages &amp; Salary — Spouse</span><span class="value" id="r_wagesSpouseAmt">$0</span></div>
       <div class="result-row"><span class="label">Investment Income</span><span class="value" id="r_invest">$0</span></div>
       <div class="result-row"><span class="label">Other Income</span><span class="value" id="r_other">$0</span></div>
       <div class="result-row subtotal"><span class="label">Gross Income (AGI)</span><span class="value green" id="r_agi">$0</span></div>
@@ -590,6 +598,8 @@ header p{font-size:.78rem;opacity:.8;margin-top:2px}
           <div class="payroll-card">
             <h4>Employee Side</h4>
             <div class="result-row" style="padding:4px 0"><span class="label" style="font-size:.78rem">Social Security (6.2%)</span><span class="value" id="r_empSS">$0</span></div>
+            <div class="result-row" id="r_empSS_selfRow" style="padding:4px 0;display:none"><span class="label indent" style="font-size:.75rem">Self</span><span class="value" id="r_empSS_self" style="font-size:.75rem">$0</span></div>
+            <div class="result-row" id="r_empSS_spouseRow" style="padding:4px 0;display:none"><span class="label indent" style="font-size:.75rem">Spouse</span><span class="value" id="r_empSS_spouse" style="font-size:.75rem">$0</span></div>
             <div class="result-row" style="padding:4px 0"><span class="label" style="font-size:.78rem">Medicare (1.45%)</span><span class="value" id="r_empMed">$0</span></div>
             <div class="result-row" style="padding:4px 0"><span class="label" style="font-size:.78rem">Add'l Medicare (0.9%)</span><span class="value" id="r_addlMed">$0</span></div>
             <div class="result-row total" style="padding:6px 0"><span class="label" style="font-size:.78rem">Total Employee Payroll Tax</span><span class="value" id="r_empTotal">$0</span></div>
@@ -597,6 +607,8 @@ header p{font-size:.78rem;opacity:.8;margin-top:2px}
           <div class="payroll-card">
             <h4>Employer Side</h4>
             <div class="result-row" style="padding:4px 0"><span class="label" style="font-size:.78rem">Social Security (6.2%)</span><span class="value" id="r_erSS">$0</span></div>
+            <div class="result-row" id="r_erSS_selfRow" style="padding:4px 0;display:none"><span class="label indent" style="font-size:.75rem">Self</span><span class="value" id="r_erSS_self" style="font-size:.75rem">$0</span></div>
+            <div class="result-row" id="r_erSS_spouseRow" style="padding:4px 0;display:none"><span class="label indent" style="font-size:.75rem">Spouse</span><span class="value" id="r_erSS_spouse" style="font-size:.75rem">$0</span></div>
             <div class="result-row" style="padding:4px 0"><span class="label" style="font-size:.78rem">Medicare (1.45%)</span><span class="value" id="r_erMed">$0</span></div>
             <div class="result-row total" style="padding:6px 0"><span class="label" style="font-size:.78rem">Total Employer Payroll Tax</span><span class="value" id="r_erTotal">$0</span></div>
           </div>
@@ -625,8 +637,8 @@ header p{font-size:.78rem;opacity:.8;margin-top:2px}
           <button class="range-btn" onclick="setRange(1000000,this)">$0–$1M</button>
         </div>
         <div style="position:relative"><canvas id="incomeChart"></canvas></div>
-        <div class="note info" style="margin-top:10px">
-          <b>Note:</b> Chart varies wage/salary income while holding all other inputs constant. The <span style="color:#e53e3e;font-weight:700">●</span> marker shows your current position. Negative tax liability (net refunds from EITC/CTC) is shown as $0.
+        <div class="note info" style="margin-top:10px" id="chartNote">
+          <b>Note:</b> Chart varies wage/salary income while holding all other inputs constant. The <span style="color:#e53e3e;font-weight:700">●</span> marker shows your current position. Negative values reflect net refunds from EITC and refundable CTC.
         </div>
       </div>
     </div>
@@ -712,9 +724,11 @@ function computeCore(wages, p) {
          nonItemCharAmount, blindDollar, tipsIncome, overtimePay, autoInterest,
          kids0to16, kids17, nonChildDeps, isOver65, spouseOver65} = p;
   const isMFJ = fs === 'mfj';
+  const wagesSpouse  = (isMFJ && p.wagesSpouse) ? p.wagesSpouse : 0;
+  const totalWages   = wages + wagesSpouse;           // combined for income tax
   const eitcKids = Math.min(kids0to16 + kids17, 3);
   const odcCount = kids17 + nonChildDeps;
-  const grossIncome = wages + investIncome + otherIncome;
+  const grossIncome = totalWages + investIncome + otherIncome;
   const agi = grossIncome;
   const stdDed = STD_DED[fs];
 
@@ -776,20 +790,25 @@ function computeCore(wages, p) {
   const ctcPhRed = Math.floor(Math.max(0, agi - ctcThr) / 1000) * 50;
   const ctcAP    = Math.max(0, maxCTC - ctcPhRed);
   const ctcNR    = Math.min(ctcAP, Math.max(0, tbc));
-  const refCalc  = Math.max(0, wages - 2500) * 0.15;
+  const refCalc  = Math.max(0, totalWages - 2500) * 0.15;
   const maxRef   = kids0to16 * mrpc;
   const ctcRef   = Math.min(refCalc, maxRef, Math.max(0, ctcAP - ctcNR));
   const tAfterNR = Math.max(0, tbc - ctcNR);
-  const eitcR    = calcEITC(wages, agi, fs, eitcKids);
+  const eitcR    = calcEITC(totalWages, agi, fs, eitcKids);
   const finalTax = tAfterNR - ctcRef - eitcR.credit;
 
-  const ssTxMx  = SS_MAX;
-  const empSS   = Math.min(wages, ssTxMx) * 0.062;
-  const erSS    = Math.min(wages, ssTxMx) * 0.062;
-  const empMed  = wages * 0.0145;
-  const erMed   = wages * 0.0145;
+  const ssTxMx      = SS_MAX;
+  // SS wage cap applied separately per earner — each earner's wages capped independently
+  const empSS_self   = Math.min(wages,        ssTxMx) * 0.062;
+  const empSS_spouse = Math.min(wagesSpouse,   ssTxMx) * 0.062;
+  const empSS        = empSS_self + empSS_spouse;
+  const erSS_self    = empSS_self;
+  const erSS_spouse  = empSS_spouse;
+  const erSS         = erSS_self + erSS_spouse;
+  const empMed  = totalWages * 0.0145;
+  const erMed   = totalWages * 0.0145;
   const amThr   = isMFJ ? 250000 : 200000;
-  const addlMed = Math.max(0, wages - amThr) * 0.009;
+  const addlMed = Math.max(0, totalWages - amThr) * 0.009;
   const empTot  = empSS + empMed + addlMed;
   const erTot   = erSS + erMed;
   const payTot  = empTot + erTot;
@@ -800,8 +819,9 @@ function computeCore(wages, p) {
     itemCapAdj, addlStd, tipsDed, otDed, seniorDed, autoDed, nonItemCharDed,
     ti, oti, ltcgTI, ordTax, ltcgRes, niitBase, niit, tbc,
     ctcChild, odcAmt, maxCTC, ctcPhRed, ctcAP, ctcNR, refCalc, maxRef, ctcRef,
-    tAfterNR, eitcR, eitcKids, finalTax,
-    empSS, erSS, empMed, erMed, addlMed, empTot, erTot, payTot, ssTxMx, amThr,
+    tAfterNR, eitcR, eitcKids, finalTax, totalWages, wagesSpouse,
+    empSS, empSS_self, empSS_spouse, erSS, erSS_self, erSS_spouse,
+    empMed, erMed, addlMed, empTot, erTot, payTot, ssTxMx, amThr,
     margRate: getMargRate(oti, fs),
     effRate: grossIncome > 0 ? finalTax / grossIncome : 0,
     ltcgEffRate: ltcgTI > 0 ? ltcgRes.tax / ltcgTI : 0
@@ -814,9 +834,12 @@ function computeCore(wages, p) {
 function getParams() {
   const fs = document.querySelector('input[name="fs"]:checked').value;
   const isMFJ = fs === 'mfj';
+  const wagesSelf   = parseDollar('wagesSelf');
+  const wagesSpouse = isMFJ ? parseDollar('wagesSpouse') : 0;
   return {
     fs, isMFJ,
-    wages:          parseDollar('wages'),
+    wages:          wagesSelf,       // "self" wages — used as computeCore first arg & chart x-axis
+    wagesSpouse,                     // spouse wages — held fixed; SS cap applied separately
     investIncome:   parseDollar('investIncome'),
     ltcgPortion:    Math.min(parseDollar('investIncome'), parseDollar('ltcgIncome')),
     otherIncome:    parseDollar('otherIncome'),
@@ -866,6 +889,7 @@ function toggleItemized() {
   const isI = document.querySelector('input[name="dedType"]:checked').value === 'itemized';
   document.getElementById('itemizedSection').style.display = isI ? '' : 'none';
   document.getElementById('stdSection').style.display      = isI ? 'none' : '';
+  document.getElementById('blindSection').style.display    = isI ? 'none' : '';
   updateStdDedHint();
 }
 function updateStdDedHint() {
@@ -876,7 +900,9 @@ function updateStdDedHint() {
 function updateHints() {
   const fs = document.querySelector('input[name="fs"]:checked').value;
   const isMFJ = fs === 'mfj';
-  document.getElementById('spouseOver65Row').style.display = isMFJ ? '' : 'none';
+  document.getElementById('spouseOver65Row').style.display   = isMFJ ? '' : 'none';
+  document.getElementById('wagesSpouseField').style.display  = isMFJ ? '' : 'none';
+  document.getElementById('wagesSelfLabel').textContent      = isMFJ ? 'Wages & Salary — Self' : 'Wages & Salary';
   const sh = document.getElementById('saltHint');
   if (sh) sh.textContent = `Cap: ${fmt(SALT_CAP[fs])} · phases down 30¢/$1 above ${fmt(SALT_PD_THRESH)} AGI (floor: $10,000)`;
   document.getElementById('nonItemCharHint').textContent =
@@ -935,23 +961,25 @@ function buildSummaryStrips(upToStep) {
       `<div class="summary-strip"><span class="sl">Filing:</span> <span class="si">${fsLabel}${over65?' · 65+':''} · 2026</span></div>`;
   }
   if (upToStep >= 3) {
-    const wages = parseDollar('wages'), inv = parseDollar('investIncome'), other = parseDollar('otherIncome');
+    const self_ = parseDollar('wagesSelf'), spouse_ = parseDollar('wagesSpouse');
+    const totalW = self_ + (fs==='mfj' ? spouse_ : 0);
+    const inv = parseDollar('investIncome'), other = parseDollar('otherIncome');
     let items = `<span class="sl">Filing:</span> <span class="si">${fsLabel}${over65?' · 65+':''}</span>`;
-    items += ` <span class="sl">Wages:</span> <span class="si">${fmt(wages)}</span>`;
+    items += ` <span class="sl">Wages:</span> <span class="si">${fmt(totalW)}</span>`;
     if (inv>0) items += ` <span class="sl">Invest:</span> <span class="si">${fmt(inv)}</span>`;
     if (other>0) items += ` <span class="sl">Other:</span> <span class="si">${fmt(other)}</span>`;
     document.getElementById('summaryStrip3').innerHTML = `<div class="summary-strip">${items}</div>`;
   }
   if (upToStep >= 4) {
     const dedType = document.querySelector('input[name="dedType"]:checked').value;
-    const wages = parseDollar('wages');
+    const totalW = parseDollar('wagesSelf') + (fs==='mfj' ? parseDollar('wagesSpouse') : 0);
     document.getElementById('summaryStrip4').innerHTML =
-      `<div class="summary-strip"><span class="sl">Wages:</span> <span class="si">${fmt(wages)}</span> <span class="sl">Ded:</span> <span class="si">${dedType==='itemized'?'Itemized':'Standard'}</span></div>`;
+      `<div class="summary-strip"><span class="sl">Wages:</span> <span class="si">${fmt(totalW)}</span> <span class="sl">Ded:</span> <span class="si">${dedType==='itemized'?'Itemized':'Standard'}</span></div>`;
   }
   if (upToStep >= 5) {
-    const wages = parseDollar('wages');
+    const totalW = parseDollar('wagesSelf') + (fs==='mfj' ? parseDollar('wagesSpouse') : 0);
     const tips = parseDollar('tipsIncome'), ot = parseDollar('overtimePay'), auto = parseDollar('autoInterest');
-    let items = `<span class="sl">Wages:</span> <span class="si">${fmt(wages)}</span>`;
+    let items = `<span class="sl">Wages:</span> <span class="si">${fmt(totalW)}</span>`;
     if (tips>0) items += ` <span class="sl">Tips:</span> <span class="si">${fmt(tips)}</span>`;
     if (ot>0) items += ` <span class="sl">OT:</span> <span class="si">${fmt(ot)}</span>`;
     if (auto>0) items += ` <span class="sl">Auto Int:</span> <span class="si">${fmt(auto)}</span>`;
@@ -1114,22 +1142,29 @@ function calculate() {
   // Results summary bar
   const fsLabel = p.fs==='single'?'Single':p.fs==='hoh'?'Head of Household':'Married Filing Jointly';
   const dedLabel = p.useItemized ? 'Itemized' : 'Standard';
+  const totalWagesDisplay = p.wages + (p.wagesSpouse || 0);
   document.getElementById('resultsSummary').innerHTML =
     `<span class="sl">Filing:</span> <span class="si">${fsLabel} · 2026</span>` +
-    `<span class="sl">Wages:</span> <span class="si">${fmt(p.wages)}</span>` +
+    `<span class="sl">Wages:</span> <span class="si">${fmt(totalWagesDisplay)}</span>` +
     (p.investIncome>0 ? `<span class="sl">Investment:</span> <span class="si">${fmt(p.investIncome)}</span>` : '') +
     (p.otherIncome>0  ? `<span class="sl">Other:</span> <span class="si">${fmt(p.otherIncome)}</span>` : '') +
     `<span class="sl">Deduction:</span> <span class="si">${dedLabel}</span>`;
 
   document.getElementById('totalTax').textContent    = fmt(r.finalTax);
   document.getElementById('totalTaxSub').textContent =
-    `2026 · ${fsLabel} · Gross Income: ${fmt(r.grossIncome)}`;
+    `2026 · ${fsLabel} · Gross Income: ${fmt(r.grossIncome)}` +
+    (p.isMFJ && p.wagesSpouse > 0 ? ` (Self wages: ${fmt(p.wages)} + Spouse: ${fmt(p.wagesSpouse)})` : '');
   document.getElementById('effRate').textContent  = fmtPct(Math.max(0, r.effRate));
   document.getElementById('margRate').textContent = fmtPct(r.margRate);
   document.getElementById('ltcgRate').textContent = fmtPct(r.ltcgEffRate);
 
   // Income
-  document.getElementById('r_wages').textContent  = fmt(p.wages);
+  // Wages display — two rows for MFJ, one row otherwise
+  document.getElementById('r_wagesSelfLabel').textContent = p.isMFJ ? 'Wages & Salary — Self' : 'Wages & Salary';
+  document.getElementById('r_wages').textContent = fmt(p.wages);
+  const showSpouseRow = p.isMFJ && (p.wagesSpouse || 0) > 0;
+  document.getElementById('r_wagesSpouseRow').style.display = showSpouseRow ? '' : 'none';
+  if (showSpouseRow) document.getElementById('r_wagesSpouseAmt').textContent = fmt(p.wagesSpouse);
   document.getElementById('r_invest').textContent = fmt(p.investIncome);
   document.getElementById('r_other').textContent  = fmt(p.otherIncome);
   document.getElementById('r_agi').textContent    = fmt(r.agi);
@@ -1252,7 +1287,7 @@ function calculate() {
   document.getElementById('r_ctcFinal').textContent      = fmt(r.ctcNR + r.ctcRef);
 
   // EITC detail
-  document.getElementById('r_earnedInc').textContent      = fmt(p.wages);
+  document.getElementById('r_earnedInc').textContent      = fmt(r.totalWages);
   document.getElementById('r_eitcKids').textContent       = r.eitcKids + (r.eitcKids===3?'+':'');
   document.getElementById('r_eitcPhaseIn').textContent    = fmt(EITC[r.eitcKids].ea);
   document.getElementById('r_eitcMax').textContent        = fmt(r.eitcR.mc);
@@ -1268,10 +1303,29 @@ function calculate() {
   document.getElementById('r_erSS').textContent     = fmt(r.erSS);
   document.getElementById('r_erMed').textContent    = fmt(r.erMed);
   document.getElementById('r_erTotal').textContent  = fmt(r.erTot);
+  // Per-earner SS breakdown (only show for MFJ when both earners have wages)
+  const showPerEarner = p.isMFJ && p.wagesSpouse > 0;
+  ['r_empSS_selfRow','r_empSS_spouseRow','r_erSS_selfRow','r_erSS_spouseRow'].forEach(id => {
+    document.getElementById(id).style.display = showPerEarner ? '' : 'none';
+  });
+  if (showPerEarner) {
+    document.getElementById('r_empSS_self').textContent   = fmt(r.empSS_self);
+    document.getElementById('r_empSS_spouse').textContent = fmt(r.empSS_spouse);
+    document.getElementById('r_erSS_self').textContent    = fmt(r.erSS_self);
+    document.getElementById('r_erSS_spouse').textContent  = fmt(r.erSS_spouse);
+  }
   document.getElementById('r_ssTaxMax').textContent = fmt(r.ssTxMx);
   document.getElementById('r_addlMedThresh').textContent = fmt(r.amThr) + ` (wages above this subject to add'l 0.9%)`;
   document.getElementById('r_payrollTotal').textContent = fmt(r.payTot);
   document.getElementById('r_grandTotal').textContent   = fmt(r.finalTax + r.payTot);
+
+  // Chart note — clarify what's varying for MFJ two-earner households
+  const chartNote = document.getElementById('chartNote');
+  if (chartNote) {
+    chartNote.innerHTML = p.isMFJ && p.wagesSpouse > 0
+      ? `<b>Note:</b> Chart shows total household wages (self + spouse) from $0 to the selected range, keeping the self/spouse ratio fixed at ${Math.round(p.wages/(p.wages+p.wagesSpouse)*100)}%/${Math.round(p.wagesSpouse/(p.wages+p.wagesSpouse)*100)}%. Effective rate = tax ÷ total wages. The <span style="color:#e53e3e;font-weight:700">●</span> marker shows your current total wage position. Negative values reflect net refunds from EITC and refundable CTC.`
+      : `<b>Note:</b> Chart varies wage/salary income while holding all other inputs constant. The <span style="color:#e53e3e;font-weight:700">●</span> marker shows your current position. Negative values reflect net refunds from EITC and refundable CTC.`;
+  }
 
   // Tax Receipt
   renderReceipt(p, r);
@@ -1296,15 +1350,28 @@ function drawChart() {
   const p = getParams();
   const POINTS = 150;
   const wages_arr = [], tax_arr = [], rate_arr = [];
+
+  // For MFJ with two earners, vary TOTAL household wages at the same self/spouse ratio
+  // the user entered. This keeps the effective rate meaningful (tax ÷ total wages).
+  const spouseWages    = (p.isMFJ && p.wagesSpouse) ? p.wagesSpouse : 0;
+  const totalInput     = p.wages + spouseWages;
+  const hasTwoEarners  = spouseWages > 0;
+  const selfRatio      = (hasTwoEarners && totalInput > 0) ? p.wages / totalInput : 1;
+
   for (let i = 0; i <= POINTS; i++) {
-    const w = Math.round(i * chartMax / POINTS);
-    const res = computeCore(w, p);
-    const tax = Math.max(0, res.finalTax);
-    wages_arr.push(w);
+    const totalW  = Math.round(i * chartMax / POINTS);
+    const selfW   = hasTwoEarners ? Math.round(totalW * selfRatio)  : totalW;
+    const spouseW = hasTwoEarners ? (totalW - selfW)                : 0;
+    const pChart  = hasTwoEarners ? Object.assign({}, p, {wagesSpouse: spouseW}) : p;
+    const res     = computeCore(selfW, pChart);
+    const tax     = res.finalTax;
+    wages_arr.push(totalW);
     tax_arr.push(Math.round(tax));
-    rate_arr.push(w > 0 ? parseFloat((Math.max(0,tax)/w*100).toFixed(2)) : 0);
+    rate_arr.push(totalW > 0 ? parseFloat((tax / totalW * 100).toFixed(2)) : 0);
   }
-  const curW = p.wages;
+
+  // Position marker at total household wages
+  const curW = p.wages + spouseWages;
   let closestIdx = 0;
   wages_arr.forEach((w, i) => { if (Math.abs(w-curW) < Math.abs(wages_arr[closestIdx]-curW)) closestIdx = i; });
   const taxMarker  = wages_arr.map((_, i) => i===closestIdx ? tax_arr[i] : null);
@@ -1332,8 +1399,18 @@ function drawChart() {
         tooltip:{callbacks:{
           title:ctx2=>`Wages: ${ctx2[0].label}`,
           label:ctx2=>{
-            if(ctx2.datasetIndex===0) return `  Federal Income Tax: ${fmtDollar(ctx2.raw)}`;
-            if(ctx2.datasetIndex===1) return `  Effective Rate: ${ctx2.raw.toFixed(1)}%`;
+            if(ctx2.datasetIndex===0){
+              const v = ctx2.raw;
+              return v < 0
+                ? `  Net Refund (EITC/CTC): ${fmtDollar(Math.abs(v))}`
+                : `  Federal Income Tax: ${fmtDollar(v)}`;
+            }
+            if(ctx2.datasetIndex===1){
+              const r = ctx2.raw;
+              return r < 0
+                ? `  Effective Rate: ${r.toFixed(1)}% (net transfer)`
+                : `  Effective Rate: ${r.toFixed(1)}%`;
+            }
             return null;
           },
           afterBody:ctx2=>{
@@ -1344,7 +1421,7 @@ function drawChart() {
       },
       scales:{
         x:{ticks:{maxTicksLimit:10,font:{size:11},color:'#718096'},grid:{color:'#f0f4f8'}},
-        y:{position:'left',title:{display:true,text:'Federal Income Tax',font:{size:11},color:'#2b6cb0'},ticks:{callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v,font:{size:11},color:'#718096'},grid:{color:'#f0f4f8'}},
+        y:{position:'left',title:{display:true,text:'Federal Income Tax',font:{size:11},color:'#2b6cb0'},ticks:{callback:v=>{const a=Math.abs(v),s=v<0?'-':'';return a>=1000000?s+'$'+(a/1000000).toFixed(1)+'M':a>=1000?s+'$'+(a/1000).toFixed(0)+'K':s+'$'+a;},font:{size:11},color:'#718096'},grid:{color:ctx3=>ctx3.tick.value===0?'rgba(0,0,0,0.3)':'#f0f4f8',lineWidth:ctx3=>ctx3.tick.value===0?1.5:1}},
         y1:{position:'right',title:{display:true,text:'Effective Rate (%)',font:{size:11},color:'#c05621'},ticks:{callback:v=>v.toFixed(0)+'%',font:{size:11},color:'#718096'},grid:{drawOnChartArea:false}}
       }
     }
